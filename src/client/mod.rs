@@ -1,0 +1,66 @@
+mod game;
+mod websocket;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use log::Level;
+
+#[cfg(target_arch = "wasm32")]
+use self::game::Game;
+#[cfg(target_arch = "wasm32")]
+use self::websocket::WebSocketClient;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    // Set up better panic messages and logging
+
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
+
+    console_error_panic_hook::set_once();
+    console_log::init_with_level(Level::Info).expect("Failed to initialize logging");
+
+    // Initialize game and websocket
+    let websocket = Arc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
+    let game = Arc::new(Game::new().expect("Failed to create game"));
+
+    // Set up resize handler
+    let resize_game = game.clone();
+    let resize_handler = Closure::wrap(Box::new(move || {
+        let window = web_sys::window().unwrap();
+        let canvas = resize_game.canvas().lock();
+        canvas.set_width(window.inner_width().unwrap().as_f64().unwrap() as u32);
+        canvas.set_height(window.inner_height().unwrap().as_f64().unwrap() as u32);
+    }) as Box<dyn FnMut()>);
+
+    web_sys::window()
+        .unwrap()
+        .add_event_listener_with_callback(
+            "resize",
+            resize_handler.as_ref().unchecked_ref(),
+        )?;
+    resize_handler.forget();
+
+    // Set up game loop
+    let game_loop = game.clone();
+    let websocket_loop = websocket.clone();
+    let f = Closure::wrap(Box::new(move || {
+        if let Err(e) = websocket_loop.lock().update(&game_loop) {
+            web_sys::console::error_1(&e);
+        }
+        game_loop.render_grid();
+    }) as Box<dyn FnMut()>);
+
+    web_sys::window()
+        .unwrap()
+        .set_interval_with_callback_and_timeout_and_arguments_0(
+            f.as_ref().unchecked_ref(),
+            16, // ~60 FPS
+        )?;
+    f.forget();
+
+    Ok(())
+}
