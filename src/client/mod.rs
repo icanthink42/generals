@@ -44,6 +44,22 @@ pub fn start() -> Result<(), JsValue> {
         )?;
     resize_handler.forget();
 
+    // Set up click handler
+    let click_game = game.clone();
+    let click_handler = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+        let rect = click_game.canvas().lock().get_bounding_client_rect();
+        let x = event.client_x() as f64 - rect.left();
+        let y = event.client_y() as f64 - rect.top();
+        click_game.handle_click(x, y);
+    }) as Box<dyn FnMut(web_sys::MouseEvent)>);
+
+    game.canvas().lock()
+        .add_event_listener_with_callback(
+            "click",
+            click_handler.as_ref().unchecked_ref(),
+        )?;
+    click_handler.forget();
+
     // Set up game loop
     let game_loop = game.clone();
     let websocket_loop = websocket.clone();
