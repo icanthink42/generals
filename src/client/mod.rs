@@ -1,4 +1,6 @@
 mod game;
+mod movement;
+mod rendering;
 mod websocket;
 
 #[cfg(target_arch = "wasm32")]
@@ -59,6 +61,27 @@ pub fn start() -> Result<(), JsValue> {
             click_handler.as_ref().unchecked_ref(),
         )?;
     click_handler.forget();
+
+    // Set up keyboard handler
+    let keyboard_game = game.clone();
+    let keyboard_handler = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+        let key = event.key().to_lowercase();
+        match key.as_str() {
+            "w" | "a" | "s" | "d" => {
+                event.prevent_default();
+                keyboard_game.handle_wasd(key.as_str());
+            }
+            _ => {}
+        }
+    }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
+    web_sys::window()
+        .unwrap()
+        .add_event_listener_with_callback(
+            "keydown",
+            keyboard_handler.as_ref().unchecked_ref(),
+        )?;
+    keyboard_handler.forget();
 
     // Set up game loop
     let game_loop = game.clone();

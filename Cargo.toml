@@ -42,6 +42,7 @@ features = [
     "EventTarget",
     "AddEventListenerOptions",
     "MouseEvent",
+    "KeyboardEvent",
     "DomRect",
     "CssStyleDeclaration",
     "Window",

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::terrain::Terrain;
-use parking_lot::RwLock;
+
 use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

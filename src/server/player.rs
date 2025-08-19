@@ -40,7 +40,7 @@ impl Player {
 
     pub async fn handle_packet(&self, packet: SBPacket, server: &Arc<Server>) {
         match packet {
-            SBPacket::Login(login) => {
+            SBPacket::Login(_login) => {
                 println!("Received login packet from already logged in player {}", self.name.read());
             }
             SBPacket::GiveMeMap => {

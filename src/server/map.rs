@@ -1,10 +1,6 @@
-use std::sync::Arc;
-
 use generals::shared::{map::Cell, MapView, Terrain};
 use parking_lot::RwLock;
 use uuid::Uuid;
-
-use crate::player::Player;
 
 pub struct Map {
     pub width: usize,
@@ -21,6 +17,7 @@ impl Map {
         y * self.width + x
     }
 
+    #[allow(dead_code)]
     pub fn set_cell(&self, x: usize, y: usize, cell: Cell) {
         self.cells.write()[self.get_cell_id(x, y)] = cell;
     }

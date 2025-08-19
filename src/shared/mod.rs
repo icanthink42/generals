@@ -4,6 +4,7 @@ pub mod cb_packet;
 pub mod sb_packet;
 pub mod packet;
 pub mod player;
+pub mod path;
 
 pub use map::MapView;
 pub use terrain::Terrain;

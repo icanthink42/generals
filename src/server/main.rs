@@ -9,11 +9,11 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::Router;
-use futures_util::{StreamExt, SinkExt};
+use futures_util::StreamExt;
 use generals::shared::cb_packet::LoginAccepted;
-use generals::shared::{CBPacket, Color, MapView, SBPacket};
+use generals::shared::{CBPacket, Color, SBPacket};
 use parking_lot::RwLock;
-use tokio::sync::{Mutex as AsyncMutex};
+
 use uuid::Uuid;
 
 use crate::map::Map;
@@ -29,7 +29,7 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
 
     // Create a temporary player for the connection
     let player_id = Uuid::new_v4();
-    let mut player = Arc::new(Player::new(
+    let player = Arc::new(Player::new(
         player_id,
         "Connecting...".to_string(),
         Color { r: 0, g: 128, b: 255, a: 255 },
