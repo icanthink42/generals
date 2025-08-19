@@ -9,6 +9,8 @@ use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 use crate::shared::map::MapView;
+#[cfg(target_arch = "wasm32")]
+use crate::shared::PlayerView;
 
 #[cfg(target_arch = "wasm32")]
 use parking_lot::Mutex;
@@ -19,6 +21,7 @@ pub struct Game {
     pub canvas: Mutex<HtmlCanvasElement>,
     pub context: Mutex<CanvasRenderingContext2d>,
     pub selected_cell: Mutex<Option<usize>>,
+    pub players: Mutex<Vec<PlayerView>>,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -55,6 +58,7 @@ impl Game {
             canvas: Mutex::new(canvas),
             context: Mutex::new(context),
             selected_cell: Mutex::new(None),
+            players: Mutex::new(vec![]),
         })
     }
 
@@ -139,7 +143,6 @@ impl Game {
         let context = self.context.lock();
         context.set_fill_style_str("#1a1a1a");
         context.fill_rect(0.0, 0.0, width, height);
-
         // Grid config
         let rows = map.height;
         let cols = map.width;
@@ -182,12 +185,38 @@ impl Game {
                 let y = y_offset + row as f64 * (cell_size + cell_gap);
 
                 // Draw cell background
-                if map.cells.contains_key(&cell_id) {
-                    context.set_fill_style_str("#4a4a4a");  // Light gray for visible cells
+                if let Some(cell) = map.cells.get(&cell_id) {
+                    if let Some(owner_id) = cell.owner_id {
+                        // Find the owner's color
+                        let players = self.players.lock();
+                        if let Some(owner) = players.iter().find(|p| p.id == owner_id) {
+                            context.set_fill_style_str(&format!("rgba({}, {}, {}, {})",
+                                owner.color.r, owner.color.g, owner.color.b, owner.color.a as f64 / 255.0));
+                        } else {
+                            context.set_fill_style_str("#4a4a4a");  // Default if owner not found
+                        }
+                    } else {
+                        context.set_fill_style_str("#4a4a4a");  // Unowned but visible cell
+                    }
                 } else {
                     context.set_fill_style_str("#2a2a2a");  // Dark gray for fog of war
                 }
                 context.fill_rect(x, y, cell_size, cell_size);
+
+                // Draw troop count if cell is visible and has troops
+                if let Some(cell) = map.cells.get(&cell_id) {
+                    if cell.troops > 0 {
+                        context.set_fill_style_str("white");
+                        context.set_text_align("center");
+                        context.set_text_baseline("middle");
+                        context.set_font(&format!("{}px Arial", cell_size * 0.5));
+                        let _ = context.fill_text(
+                            &cell.troops.to_string(),
+                            x + cell_size / 2.0,
+                            y + cell_size / 2.0,
+                        );
+                    }
+                }
 
                 // Draw selection border if this is the selected cell
                 if let Some(selected) = *self.selected_cell.lock() {

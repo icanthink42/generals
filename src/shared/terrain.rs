@@ -4,4 +4,6 @@ pub enum Terrain {
     Mountain,
     Swamp,
     Desert,
+    Capital,
+    City,
 }

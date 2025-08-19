@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::shared::Color;
+use crate::shared::{PlayerView, Color};
 
 use super::map::MapView;
 
@@ -8,6 +8,7 @@ use super::map::MapView;
 pub enum CBPacket {
     LoginAccepted(LoginAccepted),
     MapSync(MapSync),
+    SyncPlayers(SyncPlayers),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -19,4 +20,9 @@ pub struct MapSync {
 pub struct LoginAccepted {
     pub player_id: Uuid,
     pub color: Color,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct SyncPlayers {
+    pub players: Vec<PlayerView>,
 }

@@ -84,6 +84,10 @@ impl WebSocketClient {
                 info!("Processing map sync packet");
                 game.map.lock().replace(map_sync.map);
             }
+            CBPacket::SyncPlayers(sync_players) => {
+                info!("Processing sync players packet");
+                *game.players.lock() = sync_players.players;
+            }
         }
     }
 }

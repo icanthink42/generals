@@ -74,4 +74,31 @@ impl Map {
 
         MapView { width: self.width, height: self.height, cells }
     }
+
+    pub fn add_player_capital(&self, player: Uuid) {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+
+        // Choose a random position
+        let x = rng.gen_range(0..self.width);
+        let y = rng.gen_range(0..self.height);
+        let cell_id = self.get_cell_id(x, y);
+
+        // Set the cell as a capital with initial troops
+        let mut cells = self.cells.write();
+        cells[cell_id] = Cell {
+            terrain: Terrain::Capital,
+            troops: 1,  // Start with 1 troop
+            owner_id: Some(player),
+        };
+    }
+
+    pub fn increment_capital_troops(&self) {
+        let mut cells = self.cells.write();
+        for cell in cells.iter_mut() {
+            if cell.terrain == Terrain::Capital {
+                cell.troops += 1;
+            }
+        }
+    }
 }

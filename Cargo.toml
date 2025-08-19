@@ -51,6 +51,7 @@ features = [
 tokio = { version = "1.39", features = ["rt-multi-thread", "macros"] }
 axum = { version = "0.7", features = ["ws"] }
 futures-util = { version = "0.3" }
+rand = "0.8"
 
 
 
