@@ -3,6 +3,7 @@ use std::cell::RefCell;
 #[cfg(target_arch = "wasm32")]
 use std::rc::Rc;
 #[cfg(target_arch = "wasm32")]
+use rand::Rng;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -14,7 +15,7 @@ use wasm_sockets::{PollingClient, ConnectionStatus};
 #[cfg(target_arch = "wasm32")]
 use crate::client::game::Game;
 #[cfg(target_arch = "wasm32")]
-use crate::shared::{CBPacket, SBPacket};
+use crate::shared::{CBPacket, SBPacket, Color};
 #[cfg(target_arch = "wasm32")]
 use crate::shared::sb_packet::Login;
 
@@ -42,9 +43,16 @@ impl WebSocketClient {
         // Send login once connected
         if !self.login_sent && self.client.borrow().status() == ConnectionStatus::Connected {
             info!("Connected! Sending login packet...");
+            let mut rng = rand::thread_rng();
+            let color = Color {
+                r: rng.gen_range(50..=255),  // Avoid too dark colors
+                g: rng.gen_range(50..=255),
+                b: rng.gen_range(50..=255),
+                a: 255,
+            };
             let login_bytes = bincode::serialize(&SBPacket::Login(Login {
                 username: "guest".to_string(),
-                color_bid: None,
+                color_bid: Some(color),
             }))
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize login: {:?}", e)))?;
 

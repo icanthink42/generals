@@ -1,6 +1,7 @@
 use generals::shared::{map::Cell, MapView, Terrain};
 use parking_lot::RwLock;
 use uuid::Uuid;
+use rand::Rng;
 
 pub struct Map {
     pub width: usize,
@@ -9,8 +10,12 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self { width, height, cells: RwLock::new(vec![Cell { terrain: Terrain::Default, troops: 0, owner_id: None }; width * height]) }
+        pub fn new(width: usize, height: usize) -> Self {
+        Self {
+            width,
+            height,
+            cells: RwLock::new(vec![Cell { terrain: Terrain::Default, troops: 0, owner_id: None }; width * height])
+        }
     }
 
     fn get_cell_id(&self, x: usize, y: usize) -> usize {
@@ -90,11 +95,28 @@ impl Map {
         };
     }
 
-    pub fn increment_capital_troops(&self) {
+    pub fn tick_troops(&self) {
         let mut cells = self.cells.write();
         for cell in cells.iter_mut() {
-            if cell.terrain == Terrain::Capital {
-                cell.troops += 1;
+            match cell.terrain {
+                // Increment troops for owned capitals and cities
+                Terrain::Capital | Terrain::City if cell.owner_id.is_some() => {
+                    cell.troops += 1;
+                },
+                // Decrease troops in swamps (but not below 0)
+                Terrain::Swamp if cell.troops > 0 => {
+                    cell.troops -= 1;
+                    // Remove ownership if troops hit 0
+                    if cell.troops == 0 {
+                        cell.owner_id = None;
+                    }
+                },
+                _ => {
+                    // For any other case, if troops are 0, remove ownership
+                    if cell.troops == 0 {
+                        cell.owner_id = None;
+                    }
+                }
             }
         }
     }
@@ -107,9 +129,15 @@ impl Map {
         let attacking_owner = cells[attacking_id].owner_id;
         let defending_troops = cells[defending_id].troops;
         let defending_owner = cells[defending_id].owner_id;
+        let defending_terrain = cells[defending_id].terrain;
 
-                // Don't do anything if attacking tile has 1 or fewer troops
+        // Don't do anything if attacking tile has 1 or fewer troops
         if attacking_troops <= 1 {
+            return;
+        }
+
+        // Cannot move onto mountains
+        if defending_terrain == Terrain::Mountain {
             return;
         }
 
@@ -130,9 +158,27 @@ impl Map {
                     // Attacker wins
                     cells[defending_id].troops = moving_troops - defending_troops;
                     cells[defending_id].owner_id = attacking_owner;
+
+                    // If this was a capital capture, transfer all territory and convert to city
+                    if cells[defending_id].terrain == Terrain::Capital {
+                        if let Some(defeated_player) = defending_owner {
+                            // Transfer all territory from the defeated player to the attacker
+                            for cell in cells.iter_mut() {
+                                if cell.owner_id == Some(defeated_player) {
+                                    cell.owner_id = attacking_owner;
+                                }
+                            }
+                            // Convert captured capital to a city
+                            cells[defending_id].terrain = Terrain::City;
+                        }
+                    }
                 } else {
                     // Defender wins or ties
                     cells[defending_id].troops -= moving_troops;
+                    // Remove ownership if troops hit 0
+                    if cells[defending_id].troops == 0 {
+                        cells[defending_id].owner_id = None;
+                    }
                 }
             }
         }

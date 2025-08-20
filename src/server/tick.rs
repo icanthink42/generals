@@ -30,8 +30,8 @@ impl Server {
             });
         }
 
-        // Increment troops on all capitals
-        self.map.increment_capital_troops();
+        // Update troops based on terrain
+        self.map.tick_troops();
 
         // Send map updates to all players
         self.sync_map();

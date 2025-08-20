@@ -1,6 +1,7 @@
 mod player;
 mod map;
 mod tick;
+mod generator;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,6 +19,7 @@ use uuid::Uuid;
 
 use crate::map::Map;
 use crate::player::Player;
+use generator::{TerrainConfig, generate_map};
 
 async fn ws_handler(ws: WebSocketUpgrade, server: Arc<Server>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, server.clone()))
@@ -60,12 +62,16 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                         player.send_bytes(resp);
                     }
 
-                    // Send player sync
+                    // Send player sync with all players
+                    let all_players: Vec<_> = server.players.read().values().map(|p| p.to_view()).collect();
                     let sync = CBPacket::SyncPlayers(generals::shared::cb_packet::SyncPlayers {
-                        players: vec![player.to_view()]
+                        players: all_players
                     });
                     if let Ok(resp) = bincode::serialize(&sync) {
-                        player.send_bytes(resp);
+                        // Send to all connected players
+                        for p in server.players.read().values() {
+                            p.send_bytes(resp.clone());
+                        }
                     }
                 }
                 Ok(other) => {
@@ -102,7 +108,15 @@ impl Server {
 
 #[tokio::main]
 async fn main() {
-    let map = Map::new(30, 30);
+    // Create a map with interesting terrain
+    let config = TerrainConfig {
+        mountain_density: 0.12,    // 12% mountains
+        desert_density: 0.15,      // 15% desert
+        swamp_density: 0.08,       // 8% swamps
+        city_density: 0.04,        // 4% cities
+        clustering_factor: 0.7,    // High clustering for natural-looking terrain
+    };
+    let map = generate_map(5, 5, config);
     let server = Arc::new(Server::new(map));
 
     println!("Generals.io server (WS) starting on 127.0.0.1:1812/ws...");

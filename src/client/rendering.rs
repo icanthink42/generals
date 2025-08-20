@@ -112,14 +112,22 @@ impl Game {
                 }
                 context.fill_rect(x, y, cell_size, cell_size);
 
-                // Draw crown emoji if the terrain type is Capital
+                // Draw terrain emojis
                 if let Some(cell) = map.cells.get(&cell_id) {
-                    if cell.terrain == crate::shared::terrain::Terrain::Capital {
+                    let emoji = match cell.terrain {
+                        crate::shared::terrain::Terrain::Capital => "👑",
+                        crate::shared::terrain::Terrain::Mountain => "⛰️",
+                        crate::shared::terrain::Terrain::Swamp => "🌿",
+                        crate::shared::terrain::Terrain::City => "🏰",
+                        _ => "",
+                    };
+
+                    if !emoji.is_empty() {
                         context.set_font(&format!("{}px Arial", cell_size * 0.9));
                         context.set_text_align("center");
                         context.set_text_baseline("middle");
                         let _ = context.fill_text(
-                            "👑",
+                            emoji,
                             x + cell_size / 2.0,
                             y + cell_size / 2.0,
                         );
