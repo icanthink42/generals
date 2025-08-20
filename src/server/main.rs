@@ -38,6 +38,12 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
         write
     ));
 
+    // Handle player disconnect when the loop ends
+    let _cleanup = CleanupGuard {
+        server: server.clone(),
+        player_id,
+    };
+
     while let Some(Ok(msg)) = read.next().await {
         if let Message::Binary(data) = msg {
             match bincode::deserialize::<SBPacket>(&data) {
@@ -83,12 +89,46 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
     }
 }
 
+struct CleanupGuard {
+    server: Arc<Server>,
+    player_id: Uuid,
+}
+
+impl Drop for CleanupGuard {
+    fn drop(&mut self) {
+        // When a player disconnects, remove them from the game
+        self.server.remove_player(self.player_id);
+    }
+}
+
 struct Server {
     players: RwLock<HashMap<Uuid, Arc<Player>>>,
     map: Arc<Map>,
 }
 
 impl Server {
+    fn remove_player(&self, player_id: Uuid) {
+        // Remove player from the map
+        self.map.remove_player(player_id);
+
+        // Remove player from the players list
+        self.players.write().remove(&player_id);
+
+        // Notify remaining players about the player list change
+        let all_players: Vec<_> = self.players.read().values().map(|p| p.to_view()).collect();
+        let sync = CBPacket::SyncPlayers(generals::shared::cb_packet::SyncPlayers {
+            players: all_players
+        });
+        if let Ok(resp) = bincode::serialize(&sync) {
+            // Send to all remaining players
+            for p in self.players.read().values() {
+                p.send_bytes(resp.clone());
+            }
+        }
+
+        // Sync map to show territory changes
+        self.sync_map();
+    }
     fn new(map: Map) -> Self {
         Self { players: RwLock::new(HashMap::new()), map: Arc::new(map) }
     }

@@ -39,6 +39,36 @@ impl Game {
         )
     }
 
+    fn render_player_list(&self, context: &web_sys::CanvasRenderingContext2d, x: f64, y: f64) {
+        let players = self.players.lock();
+        let padding = 10.0;
+        let line_height = 25.0;
+        let box_width = 200.0;
+        let box_height = (players.len() as f64 * line_height) + (padding * 2.0);
+
+        // Draw semi-transparent background
+        context.set_fill_style_str("rgba(0, 0, 0, 0.7)");
+        context.fill_rect(x, y, box_width, box_height);
+
+        // Draw each player
+        context.set_font("16px Arial");
+        context.set_text_align("left");
+        context.set_text_baseline("middle");
+
+        for (i, player) in players.iter().enumerate() {
+            let text_y = y + padding + (i as f64 * line_height) + (line_height / 2.0);
+
+            // Draw color square
+            context.set_fill_style_str(&format!("rgba({}, {}, {}, {})",
+                player.color.r, player.color.g, player.color.b, player.color.a as f64 / 255.0));
+            context.fill_rect(x + padding, text_y - 8.0, 16.0, 16.0);
+
+            // Draw player name
+            context.set_fill_style_str("white");
+            let _ = context.fill_text(&player.name, x + padding + 25.0, text_y);
+        }
+    }
+
     pub fn render_grid(&self) {
         let map_guard = self.map.lock();
         let Some(map) = map_guard.as_ref() else {
@@ -185,5 +215,8 @@ impl Game {
                 }
             }
         }
+
+        // Draw player list overlay
+        self.render_player_list(&context, 20.0, 20.0);
     }
 }

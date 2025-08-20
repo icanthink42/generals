@@ -95,6 +95,21 @@ impl Map {
         };
     }
 
+    pub fn remove_player(&self, player_id: Uuid) {
+        let mut cells = self.cells.write();
+        for cell in cells.iter_mut() {
+            // If this cell belongs to the disconnected player
+            if cell.owner_id == Some(player_id) {
+                // Remove ownership
+                cell.owner_id = None;
+                // Convert capital to city
+                if cell.terrain == Terrain::Capital {
+                    cell.terrain = Terrain::City;
+                }
+            }
+        }
+    }
+
     pub fn tick_troops(&self) {
         let mut cells = self.cells.write();
         for cell in cells.iter_mut() {
