@@ -27,7 +27,7 @@ pub fn start() -> Result<(), JsValue> {
 
     // Initialize game and websocket
     let websocket = Arc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
-    let game = Arc::new(Game::new().expect("Failed to create game"));
+    let game = Arc::new(Game::new(websocket.clone()).expect("Failed to create game"));
 
     // Set up resize handler
     let resize_game = game.clone();

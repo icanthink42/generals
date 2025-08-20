@@ -1,3 +1,4 @@
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Path {
     pub tile_ids: Vec<u32>,
 }

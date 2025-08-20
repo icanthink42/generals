@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use axum::extract::ws::{WebSocket, Message};
 use futures_util::{stream::SplitSink, SinkExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 
-use generals::shared::{cb_packet::MapSync, CBPacket, Color, PlayerView, SBPacket};
+use generals::shared::{cb_packet::MapSync, path::Path, CBPacket, Color, PlayerView, SBPacket};
 use uuid::Uuid;
 
 use crate::Server;
@@ -15,6 +15,7 @@ pub struct Player {
     pub name: RwLock<String>,
     pub color: RwLock<Color>,
     pub tx: UnboundedSender<Vec<u8>>,
+    pub paths: RwLock<HashMap<u32, Path>>,
 }
 
 impl Player {
@@ -32,7 +33,8 @@ impl Player {
             id,
             name: RwLock::new(name),
             color: RwLock::new(color),
-            tx
+            tx,
+            paths: RwLock::new(HashMap::new()),
         }
     }
 
@@ -48,6 +50,11 @@ impl Player {
                 let packet = CBPacket::MapSync(MapSync { map });
                 if let Ok(bytes) = bincode::serialize(&packet) {
                     let _ = self.tx.send(bytes);
+                }
+            }
+            SBPacket::UpdatePaths(update_paths) => {
+                for (id, path) in update_paths.paths {
+                    self.paths.write().insert(id, path);
                 }
             }
         }

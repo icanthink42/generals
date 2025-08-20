@@ -1,9 +1,13 @@
 #[cfg(target_arch = "wasm32")]
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
+
+#[cfg(target_arch = "wasm32")]
 use parking_lot::Mutex;
 
+#[cfg(target_arch = "wasm32")]
 use super::game::Game;
 
+#[cfg(target_arch = "wasm32")]
 impl Game {
     fn get_path_color(&self, id: u32) -> String {
         // Use golden ratio to get nice spread of colors

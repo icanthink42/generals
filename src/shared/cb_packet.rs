@@ -9,6 +9,7 @@ pub enum CBPacket {
     LoginAccepted(LoginAccepted),
     MapSync(MapSync),
     SyncPlayers(SyncPlayers),
+    TickPaths,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]

@@ -1,9 +1,16 @@
 #[cfg(target_arch = "wasm32")]
+use web_sys;
+#[cfg(target_arch = "wasm32")]
 use parking_lot::Mutex;
+#[cfg(target_arch = "wasm32")]
+use std::collections::HashMap;
 use crate::shared::path::Path;
+use crate::shared::{SBPacket, sb_packet::UpdatePaths};
 
+#[cfg(target_arch = "wasm32")]
 use super::game::Game;
 
+#[cfg(target_arch = "wasm32")]
 impl Game {
     fn get_cell_at_position(&self, x: f64, y: f64) -> Option<usize> {
         let map_guard = self.map.lock();
@@ -63,8 +70,6 @@ impl Game {
     pub fn handle_click(&self, x: f64, y: f64) {
         if let Some(cell_id) = self.get_cell_at_position(x, y) {
             self.selected_cell.lock().replace(cell_id);
-            // Clear any existing path for that cell
-            self.paths.lock().clear();
         }
     }
 
@@ -112,8 +117,15 @@ impl Game {
                 path.lock().tile_ids.push(new_cell as u32);
             }
         } else {
-            // If it's not part of any path, create a new one starting from current_cell
-            paths.insert(current_cell as u32, Mutex::new(Path::new(vec![current_cell as u32, new_cell as u32])));
+            // Create new path with next available ID
+            let path_id = paths.len() as u32;
+            paths.insert(path_id, Mutex::new(Path::new(vec![current_cell as u32, new_cell as u32])));
+        }
+
+        // Send updated paths to server
+        let paths_clone: HashMap<_, _> = paths.iter().map(|(&k, v)| (k, v.lock().clone())).collect();
+        if let Ok(bytes) = bincode::serialize(&SBPacket::UpdatePaths(UpdatePaths { paths: paths_clone })) {
+            self.websocket.lock().send_binary(bytes);
         }
 
         true

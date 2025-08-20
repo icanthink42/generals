@@ -14,6 +14,8 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 use crate::shared::path::Path;
 #[cfg(target_arch = "wasm32")]
 use crate::shared::{map::MapView, PlayerView};
+#[cfg(target_arch = "wasm32")]
+use crate::client::websocket::WebSocketClient;
 
 #[cfg(target_arch = "wasm32")]
 use parking_lot::Mutex;
@@ -26,11 +28,12 @@ pub struct Game {
     pub selected_cell: Mutex<Option<usize>>,
     pub players: Mutex<Vec<PlayerView>>,
     pub paths: Mutex<HashMap<u32, Mutex<Path>>>,
+    pub websocket: Arc<Mutex<WebSocketClient>>,
 }
 
 #[cfg(target_arch = "wasm32")]
 impl Game {
-    pub fn new() -> Result<Game, JsValue> {
+    pub fn new(websocket: Arc<Mutex<WebSocketClient>>) -> Result<Game, JsValue> {
         // Get canvas and context
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
@@ -64,10 +67,21 @@ impl Game {
             selected_cell: Mutex::new(None),
             players: Mutex::new(vec![]),
             paths: Mutex::new(HashMap::new()),
+            websocket,
         })
     }
 
     pub fn canvas(&self) -> &Mutex<HtmlCanvasElement> {
         &self.canvas
+    }
+
+    pub fn tick_paths(&self) {
+        let mut paths = self.paths.lock();
+        // Remove first tile from each path and remove empty paths
+        paths.retain(|_, path| {
+            let mut path = path.lock();
+            path.remove_front(1);
+            !path.tile_ids.is_empty()
+        });
     }
 }

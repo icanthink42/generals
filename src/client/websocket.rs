@@ -71,6 +71,10 @@ impl WebSocketClient {
         Ok(())
     }
 
+    pub fn send_binary(&self, bytes: Vec<u8>) {
+        self.client.borrow_mut().send_binary(bytes).ok();
+    }
+
     fn handle_packet(&self, pkt: CBPacket, game: &Arc<Game>) {
         match pkt {
             CBPacket::LoginAccepted(_) => {
@@ -87,6 +91,10 @@ impl WebSocketClient {
             CBPacket::SyncPlayers(sync_players) => {
                 info!("Processing sync players packet");
                 *game.players.lock() = sync_players.players;
+            }
+            CBPacket::TickPaths => {
+                info!("Processing tick paths packet");
+                game.tick_paths();
             }
         }
     }

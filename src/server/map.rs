@@ -98,4 +98,43 @@ impl Map {
             }
         }
     }
+
+        pub fn tile_battle(&self, attacking_id: usize, defending_id: usize) {
+        let mut cells = self.cells.write();
+
+        // Get the current state
+        let attacking_troops = cells[attacking_id].troops;
+        let attacking_owner = cells[attacking_id].owner_id;
+        let defending_troops = cells[defending_id].troops;
+        let defending_owner = cells[defending_id].owner_id;
+
+                // Don't do anything if attacking tile has 1 or fewer troops
+        if attacking_troops <= 1 {
+            return;
+        }
+
+        // Calculate the battle outcome
+        let moving_troops = attacking_troops - 1;  // Leave 1 troop behind
+
+        // Update the cells based on battle outcome
+        cells[attacking_id].troops = 1;  // Always leave 1 behind
+
+        match (attacking_owner, defending_owner) {
+            // If same owner, combine troops
+            (Some(atk_owner), Some(def_owner)) if atk_owner == def_owner => {
+                cells[defending_id].troops += moving_troops;
+            }
+            // If different owners or defending tile is unowned, battle
+            _ => {
+                if moving_troops > defending_troops {
+                    // Attacker wins
+                    cells[defending_id].troops = moving_troops - defending_troops;
+                    cells[defending_id].owner_id = attacking_owner;
+                } else {
+                    // Defender wins or ties
+                    cells[defending_id].troops -= moving_troops;
+                }
+            }
+        }
+    }
 }
