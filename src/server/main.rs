@@ -136,7 +136,7 @@ impl Server {
     pub fn sync_map(&self) {
         let players = self.players.read();
         for player in players.values() {
-            let map_view = self.map.to_map_view(player.id());
+            let map_view = self.map.to_map_view(player.id(), self);
             let packet = generals::shared::CBPacket::MapSync(generals::shared::cb_packet::MapSync { map: map_view });
 
             if let Ok(bytes) = bincode::serialize(&packet) {

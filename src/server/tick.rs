@@ -13,7 +13,7 @@ impl Server {
                     if path.tile_ids.len() >= 2 {
                         let attacking_id = path.tile_ids[0] as usize;
                         let defending_id = path.tile_ids[1] as usize;
-                        self.map.tile_battle(attacking_id, defending_id);
+                        self.map.tile_battle(attacking_id, defending_id, self);
                     }
                 }
             }

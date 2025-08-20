@@ -16,6 +16,7 @@ pub struct Player {
     pub color: RwLock<Color>,
     pub tx: UnboundedSender<Vec<u8>>,
     pub paths: RwLock<HashMap<u32, Path>>,
+    pub alive: RwLock<bool>,
 }
 
 impl Player {
@@ -35,6 +36,7 @@ impl Player {
             color: RwLock::new(color),
             tx,
             paths: RwLock::new(HashMap::new()),
+            alive: RwLock::new(true),
         }
     }
 
@@ -46,7 +48,7 @@ impl Player {
                 println!("Received login packet from already logged in player {}", self.name.read());
             }
             SBPacket::GiveMeMap => {
-                let map = server.map.to_map_view(self.id());
+                let map = server.map.to_map_view(self.id(), server);
                 let packet = CBPacket::MapSync(MapSync { map });
                 if let Ok(bytes) = bincode::serialize(&packet) {
                     let _ = self.tx.send(bytes);
@@ -69,6 +71,7 @@ impl Player {
             id: self.id,
             name: self.name.read().clone(),
             color: *self.color.read(),
+            alive: *self.alive.read(),
         }
     }
 }

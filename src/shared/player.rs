@@ -6,4 +6,5 @@ pub struct PlayerView {
     pub id: Uuid,
     pub name: String,
     pub color: Color,
+    pub alive: bool,
 }

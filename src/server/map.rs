@@ -3,6 +3,8 @@ use parking_lot::RwLock;
 use uuid::Uuid;
 use rand::Rng;
 
+use crate::Server;
+
 pub struct Map {
     pub width: usize,
     pub height: usize,
@@ -44,7 +46,15 @@ impl Map {
         cells
     }
 
-    pub fn get_visable_cells(&self, player: Uuid) -> Vec<usize> {
+    pub fn get_visable_cells(&self, player: Uuid, server: &Server) -> Vec<usize> {
+        // Check if player is alive
+        if let Some(player_info) = server.players.read().get(&player) {
+            if !*player_info.alive.read() {
+                // Dead players can see everything
+                return (0..self.width * self.height).collect();
+            }
+        }
+
         let mut visible = Vec::new();
         let cells = self.cells.read();
 
@@ -64,8 +74,8 @@ impl Map {
         visible
     }
 
-        pub fn to_map_view(&self, player: Uuid) -> MapView {
-        let visible_cell_ids = self.get_visable_cells(player);
+        pub fn to_map_view(&self, player: Uuid, server: &Server) -> MapView {
+        let visible_cell_ids = self.get_visable_cells(player, server);
         let all_cells = self.cells.read();
 
         let mut cells = std::collections::HashMap::new();
@@ -136,7 +146,7 @@ impl Map {
         }
     }
 
-        pub fn tile_battle(&self, attacking_id: usize, defending_id: usize) {
+        pub fn tile_battle(&self, attacking_id: usize, defending_id: usize, server: &Server) {
         let mut cells = self.cells.write();
 
         // Get the current state
@@ -177,6 +187,11 @@ impl Map {
                     // If this was a capital capture, transfer all territory and convert to city
                     if cells[defending_id].terrain == Terrain::Capital {
                         if let Some(defeated_player) = defending_owner {
+                            // Set the defeated player as not alive
+                            if let Some(player) = server.players.read().get(&defeated_player) {
+                                *player.alive.write() = false;
+                            }
+
                             // Transfer all territory from the defeated player to the attacker
                             for cell in cells.iter_mut() {
                                 if cell.owner_id == Some(defeated_player) {
