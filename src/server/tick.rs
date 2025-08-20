@@ -16,7 +16,15 @@ impl Server {
                     if path.tile_ids.len() >= 2 {
                         let attacking_id = path.tile_ids[0] as usize;
                         let defending_id = path.tile_ids[1] as usize;
-                        self.map.tile_battle(attacking_id, defending_id, self);
+
+                        // Only do battle if attacking tile is owned by the player
+                        let is_owner = {
+                            let cells = self.map.cells.read();
+                            cells[attacking_id].owner_id == Some(player.id())
+                        };
+                        if is_owner {
+                            self.map.tile_battle(attacking_id, defending_id, self);
+                        }
                     }
                 }
             }
