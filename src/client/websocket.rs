@@ -3,7 +3,7 @@ use std::cell::RefCell;
 #[cfg(target_arch = "wasm32")]
 use std::rc::Rc;
 #[cfg(target_arch = "wasm32")]
-use std::sync::Arc;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
@@ -38,7 +38,7 @@ impl WebSocketClient {
         })
     }
 
-    pub fn update(&mut self, game: &Arc<Game>) -> Result<(), JsValue> {
+    pub fn update(&mut self, game: &Rc<Game>) -> Result<(), JsValue> {
         // Send login once connected
         if !self.login_sent && self.client.borrow().status() == ConnectionStatus::Connected {
             info!("Connected! Sending login packet...");
@@ -75,7 +75,7 @@ impl WebSocketClient {
         self.client.borrow_mut().send_binary(bytes).ok();
     }
 
-    fn handle_packet(&self, pkt: CBPacket, game: &Arc<Game>) {
+    fn handle_packet(&self, pkt: CBPacket, game: &Rc<Game>) {
         match pkt {
             CBPacket::LoginAccepted(_) => {
                 info!("Login accepted");

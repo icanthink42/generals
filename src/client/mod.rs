@@ -18,7 +18,7 @@ use self::websocket::WebSocketClient;
 pub fn start() -> Result<(), JsValue> {
     // Set up better panic messages and logging
 
-    use std::sync::Arc;
+    use std::rc::Rc;
 
     use parking_lot::Mutex;
 
@@ -26,8 +26,10 @@ pub fn start() -> Result<(), JsValue> {
     console_log::init_with_level(Level::Info).expect("Failed to initialize logging");
 
     // Initialize game and websocket
-    let websocket = Arc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
-    let game = Arc::new(Game::new(websocket.clone()).expect("Failed to create game"));
+    let websocket = Rc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
+    let game = Rc::new(Game::new(websocket.clone()).expect("Failed to create game"));
+
+
 
     // Set up resize handler
     let resize_game = game.clone();

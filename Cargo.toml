@@ -26,6 +26,8 @@ console_error_panic_hook = "0.1"
 console_log = "0.2"
 wasm-sockets = "1.0"
 uuid = { version = "1.17.0", features = ["serde", "v4", "js"] }
+futures = "0.3"
+tokio = { version = "1.39", features = ["sync", "macros", "rt"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "0.3"
@@ -34,7 +36,9 @@ features = [
     "Document",
     "Element",
     "HtmlCanvasElement",
+    "HtmlImageElement",
     "CanvasRenderingContext2d",
+    "ErrorEvent",
     "WebSocket",
     "MessageEvent",
     "BinaryType",

@@ -117,8 +117,10 @@ impl Game {
                 path.lock().tile_ids.push(new_cell as u32);
             }
         } else {
-            // Create new path with next available ID
-            let path_id = paths.len() as u32;
+            // Create new path with next ID
+            let mut next_id = self.next_path_id.lock();
+            let path_id = *next_id;
+            *next_id += 1;
             paths.insert(path_id, Mutex::new(Path::new(vec![current_cell as u32, new_cell as u32])));
         }
 

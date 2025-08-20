@@ -1,10 +1,4 @@
 #[cfg(target_arch = "wasm32")]
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
-
-#[cfg(target_arch = "wasm32")]
-use parking_lot::Mutex;
-
-#[cfg(target_arch = "wasm32")]
 use super::game::Game;
 
 #[cfg(target_arch = "wasm32")]
@@ -117,6 +111,20 @@ impl Game {
                     context.set_fill_style_str("#2a2a2a");  // Dark gray for fog of war
                 }
                 context.fill_rect(x, y, cell_size, cell_size);
+
+                // Draw crown emoji if the terrain type is Capital
+                if let Some(cell) = map.cells.get(&cell_id) {
+                    if cell.terrain == crate::shared::terrain::Terrain::Capital {
+                        context.set_font(&format!("{}px Arial", cell_size * 0.9));
+                        context.set_text_align("center");
+                        context.set_text_baseline("middle");
+                        let _ = context.fill_text(
+                            "👑",
+                            x + cell_size / 2.0,
+                            y + cell_size / 2.0,
+                        );
+                    }
+                }
 
                 // Draw troop count if cell is visible and has troops
                 if let Some(cell) = map.cells.get(&cell_id) {

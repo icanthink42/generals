@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 use std::collections::HashMap;
 #[cfg(target_arch = "wasm32")]
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -17,6 +17,7 @@ use crate::shared::{map::MapView, PlayerView};
 #[cfg(target_arch = "wasm32")]
 use crate::client::websocket::WebSocketClient;
 
+
 #[cfg(target_arch = "wasm32")]
 use parking_lot::Mutex;
 
@@ -28,12 +29,13 @@ pub struct Game {
     pub selected_cell: Mutex<Option<usize>>,
     pub players: Mutex<Vec<PlayerView>>,
     pub paths: Mutex<HashMap<u32, Mutex<Path>>>,
-    pub websocket: Arc<Mutex<WebSocketClient>>,
+    pub next_path_id: Mutex<u32>,
+    pub websocket: Rc<Mutex<WebSocketClient>>,
 }
 
 #[cfg(target_arch = "wasm32")]
 impl Game {
-    pub fn new(websocket: Arc<Mutex<WebSocketClient>>) -> Result<Game, JsValue> {
+    pub fn new(websocket: Rc<Mutex<WebSocketClient>>) -> Result<Game, JsValue> {
         // Get canvas and context
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
@@ -67,6 +69,7 @@ impl Game {
             selected_cell: Mutex::new(None),
             players: Mutex::new(vec![]),
             paths: Mutex::new(HashMap::new()),
+            next_path_id: Mutex::new(0),
             websocket,
         })
     }

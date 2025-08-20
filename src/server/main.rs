@@ -102,7 +102,7 @@ impl Server {
 
 #[tokio::main]
 async fn main() {
-    let map = Map::new(50, 50);
+    let map = Map::new(30, 30);
     let server = Arc::new(Server::new(map));
 
     println!("Generals.io server (WS) starting on 127.0.0.1:1812/ws...");
