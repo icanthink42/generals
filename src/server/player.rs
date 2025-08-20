@@ -3,7 +3,7 @@ use axum::extract::ws::{WebSocket, Message};
 use futures_util::{stream::SplitSink, SinkExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
 
-use generals::shared::{cb_packet::MapSync, path::Path, CBPacket, Color, PlayerView, SBPacket};
+use generals::shared::{cb_packet::MapSync, game_state::GameState, path::Path, CBPacket, Color, PlayerView, SBPacket};
 use uuid::Uuid;
 
 use crate::Server;
@@ -58,6 +58,9 @@ impl Player {
                 for (id, path) in update_paths.paths {
                     self.paths.write().insert(id, path);
                 }
+            }
+            SBPacket::StartGame => {
+                server.set_game_state(GameState::InGame);
             }
         }
     }

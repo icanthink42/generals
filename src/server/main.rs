@@ -12,6 +12,7 @@ use axum::routing::get;
 use axum::Router;
 use futures_util::StreamExt;
 use generals::shared::cb_packet::LoginAccepted;
+use generals::shared::game_state::GameState;
 use generals::shared::{CBPacket, Color, SBPacket};
 use parking_lot::RwLock;
 
@@ -54,8 +55,15 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                         *player.color.write() = color;
                     }
 
+                    // Check if game is already in progress
+                    let current_state = *server.game_state.read();
+                    if current_state == GameState::InGame {
+                        *player.alive.write() = false;
+                    } else {
+                        server.map.add_player_capital(player_id);
+                    }
+
                     server.players.write().insert(player_id, player.clone());
-                    server.map.add_player_capital(player_id);
                     println!("Player with username {} logged in", player.name.read());
                     server.sync_map();
 
@@ -78,6 +86,13 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                         for p in server.players.read().values() {
                             p.send_bytes(resp.clone());
                         }
+                    }
+
+                    // Send current game state to the new player
+                    let game_state = (*server.game_state.read()).clone();
+                    let state_packet = CBPacket::SetGameState(game_state);
+                    if let Ok(resp) = bincode::serialize(&state_packet) {
+                        player.send_bytes(resp);
                     }
                 }
                 Ok(other) => {
@@ -104,6 +119,7 @@ impl Drop for CleanupGuard {
 struct Server {
     players: RwLock<HashMap<Uuid, Arc<Player>>>,
     map: Arc<Map>,
+    game_state: RwLock<GameState>,
 }
 
 impl Server {
@@ -129,8 +145,13 @@ impl Server {
         // Sync map to show territory changes
         self.sync_map();
     }
+
     fn new(map: Map) -> Self {
-        Self { players: RwLock::new(HashMap::new()), map: Arc::new(map) }
+        Self {
+            players: RwLock::new(HashMap::new()),
+            map: Arc::new(map),
+            game_state: RwLock::new(GameState::Lobby),
+        }
     }
 
     pub fn sync_map(&self) {
@@ -141,6 +162,21 @@ impl Server {
 
             if let Ok(bytes) = bincode::serialize(&packet) {
                 player.send_bytes(bytes);
+            }
+        }
+    }
+
+    pub fn set_game_state(&self, new_state: GameState) {
+        // Update server's game state
+        *self.game_state.write() = new_state;
+
+        // Create packet to notify clients
+        let packet = CBPacket::SetGameState(new_state);
+
+        // Serialize and send to all players
+        if let Ok(bytes) = bincode::serialize(&packet) {
+            for player in self.players.read().values() {
+                player.send_bytes(bytes.clone());
             }
         }
     }

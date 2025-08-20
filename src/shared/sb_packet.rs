@@ -7,6 +7,7 @@ pub enum SBPacket {
     Login(Login),
     GiveMeMap,
     UpdatePaths(UpdatePaths),
+    StartGame,
 }
 
 

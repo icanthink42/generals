@@ -5,6 +5,7 @@ pub mod sb_packet;
 pub mod packet;
 pub mod player;
 pub mod path;
+pub mod game_state;
 
 pub use map::MapView;
 pub use terrain::Terrain;

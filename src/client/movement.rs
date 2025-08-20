@@ -12,7 +12,7 @@ use super::game::Game;
 
 #[cfg(target_arch = "wasm32")]
 impl Game {
-    fn get_cell_at_position(&self, x: f64, y: f64) -> Option<usize> {
+    pub fn get_cell_at_position(&self, x: f64, y: f64) -> Option<usize> {
         let map_guard = self.map.lock();
         let map = map_guard.as_ref()?;
         let canvas = self.canvas.lock();
@@ -65,12 +65,6 @@ impl Game {
         }
 
         Some(row * cols + col)
-    }
-
-    pub fn handle_click(&self, x: f64, y: f64) {
-        if let Some(cell_id) = self.get_cell_at_position(x, y) {
-            self.selected_cell.lock().replace(cell_id);
-        }
     }
 
     pub fn handle_wasd(&self, key: &str) -> bool {

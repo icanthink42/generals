@@ -1,8 +1,11 @@
 use crate::Server;
-use generals::shared::CBPacket;
+use generals::shared::{game_state::GameState, CBPacket};
 
 impl Server {
     pub async fn tick(&self) {
+        if *self.game_state.read() != GameState::InGame {
+            return;
+        }
         // Process battles first
         let players = self.players.read();
         for player in players.values() {

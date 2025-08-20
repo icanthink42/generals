@@ -11,9 +11,11 @@ use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 #[cfg(target_arch = "wasm32")]
+use crate::shared::game_state::GameState;
+#[cfg(target_arch = "wasm32")]
 use crate::shared::path::Path;
 #[cfg(target_arch = "wasm32")]
-use crate::shared::{map::MapView, PlayerView};
+use crate::shared::{map::MapView, PlayerView, SBPacket};
 #[cfg(target_arch = "wasm32")]
 use crate::client::websocket::WebSocketClient;
 
@@ -31,6 +33,8 @@ pub struct Game {
     pub paths: Mutex<HashMap<u32, Mutex<Path>>>,
     pub next_path_id: Mutex<u32>,
     pub websocket: Rc<Mutex<WebSocketClient>>,
+    pub game_state: Mutex<GameState>,
+    pub start_button_bounds: Mutex<Option<(f64, f64, f64, f64)>>,  // x, y, width, height
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -71,6 +75,8 @@ impl Game {
             paths: Mutex::new(HashMap::new()),
             next_path_id: Mutex::new(0),
             websocket,
+            game_state: Mutex::new(GameState::Lobby),
+            start_button_bounds: Mutex::new(None),
         })
     }
 
@@ -86,5 +92,24 @@ impl Game {
             path.remove_front(1);
             !path.tile_ids.is_empty()
         });
+    }
+
+    pub fn handle_click(&self, client_x: f64, client_y: f64) {
+        if let Some(cell_id) = self.get_cell_at_position(client_x, client_y) {
+            self.selected_cell.lock().replace(cell_id);
+        }
+
+        // Check if we're in lobby and clicked the start button
+        if *self.game_state.lock() == GameState::Lobby {
+            if let Some((button_x, button_y, button_width, button_height)) = *self.start_button_bounds.lock() {
+                if client_x >= button_x && client_x <= button_x + button_width &&
+                   client_y >= button_y && client_y <= button_y + button_height {
+                    // Send start game packet
+                    if let Ok(bytes) = bincode::serialize(&SBPacket::StartGame) {
+                        self.websocket.lock().send_binary(bytes);
+                    }
+                }
+            }
+        }
     }
 }

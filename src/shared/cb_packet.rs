@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::shared::{PlayerView, Color};
+use crate::shared::{game_state::GameState, Color, PlayerView};
 
 use super::map::MapView;
 
@@ -10,6 +10,7 @@ pub enum CBPacket {
     MapSync(MapSync),
     SyncPlayers(SyncPlayers),
     TickPaths,
+    SetGameState(GameState),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]

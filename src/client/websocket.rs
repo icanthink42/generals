@@ -104,6 +104,10 @@ impl WebSocketClient {
                 info!("Processing tick paths packet");
                 game.tick_paths();
             }
+            CBPacket::SetGameState(state) => {
+                info!("Setting game state to {:?}", state);
+                *game.game_state.lock() = state;
+            }
         }
     }
 }
