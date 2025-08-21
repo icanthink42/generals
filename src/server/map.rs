@@ -1,4 +1,4 @@
-use generals::shared::{map::Cell, MapView, Terrain};
+use generals::shared::{map::Cell, MapView, Terrain, game_state::GameState};
 use parking_lot::RwLock;
 use uuid::Uuid;
 use rand::Rng;
@@ -146,6 +146,18 @@ impl Map {
         }
     }
 
+    pub fn tick_owned_tiles(&self) {
+        let mut cells = self.cells.write();
+        for cell in cells.iter_mut() {
+            // Only increment non-capital, non-city tiles that are owned
+            if cell.owner_id.is_some() &&
+               cell.terrain != Terrain::Capital &&
+               cell.terrain != Terrain::City {
+                cell.troops += 1;
+            }
+        }
+    }
+
         pub fn tile_battle(&self, attacking_id: usize, defending_id: usize, server: &Server) {
         let mut cells = self.cells.write();
 
@@ -200,6 +212,15 @@ impl Map {
                             }
                             // Convert captured capital to a city
                             cells[defending_id].terrain = Terrain::City;
+
+                            // Check if there's only one capital left
+                            let remaining_capitals = cells.iter()
+                                .filter(|cell| cell.terrain == Terrain::Capital)
+                                .count();
+
+                            if remaining_capitals == 1 {
+                                server.set_game_state(GameState::GameOver);
+                            }
                         }
                     }
                 } else {

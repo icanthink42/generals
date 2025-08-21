@@ -120,6 +120,7 @@ struct Server {
     players: RwLock<HashMap<Uuid, Arc<Player>>>,
     map: Arc<Map>,
     game_state: RwLock<GameState>,
+    tick_counter: RwLock<u32>,
 }
 
 impl Server {
@@ -151,6 +152,7 @@ impl Server {
             players: RwLock::new(HashMap::new()),
             map: Arc::new(map),
             game_state: RwLock::new(GameState::Lobby),
+            tick_counter: RwLock::new(0),
         }
     }
 
@@ -192,7 +194,7 @@ async fn main() {
         city_density: 0.04,        // 4% cities
         clustering_factor: 0.7,    // High clustering for natural-looking terrain
     };
-    let map = generate_map(5, 5, config);
+    let map = generate_map(20, 20, config);
     let server = Arc::new(Server::new(map));
 
     println!("Generals.io server (WS) starting on 127.0.0.1:1812/ws...");
@@ -200,7 +202,7 @@ async fn main() {
     // Start tick loop
     let tick_server = server.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
         loop {
             interval.tick().await;
             tick_server.tick().await;

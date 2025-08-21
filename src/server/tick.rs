@@ -6,6 +6,14 @@ impl Server {
         if *self.game_state.read() != GameState::InGame {
             return;
         }
+
+        // Increment tick counter
+        let tick_count = {
+            let mut counter = self.tick_counter.write();
+            *counter += 1;
+            *counter
+        };
+
         // Process battles first
         let players = self.players.read();
         for player in players.values() {
@@ -41,8 +49,15 @@ impl Server {
             });
         }
 
-        // Update troops based on terrain
-        self.map.tick_troops();
+        // Every 2 ticks (1 second), update troops for capitals and cities
+        if tick_count % 2 == 0 {
+            self.map.tick_troops();
+        }
+
+        // Every 20 ticks (10 seconds), increment troops on all owned tiles
+        if tick_count % 50 == 0 {
+            self.map.tick_owned_tiles();
+        }
 
         // Send map updates to all players
         self.sync_map();
