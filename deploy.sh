@@ -33,7 +33,7 @@ cat > "${DEPLOY_TMP}/start_client.sh" << 'EOSCRIPT'
 set -euo pipefail
 
 WWW_DIR="www"
-PORT="${PORT:-8080}"
+PORT="${PORT:-80}"
 
 cd "$(dirname "$0")"
 
@@ -72,7 +72,7 @@ cat > "${WWW_DIR}/index.html" << 'EOHTML'
 EOHTML
 
 echo "==> Serving ${WWW_DIR} at http://0.0.0.0:${PORT}"
-python3 -m http.server "${PORT}" --bind 0.0.0.0 --directory "${WWW_DIR}"
+sudo python3 -m http.server "${PORT}" --bind 0.0.0.0 --directory "${WWW_DIR}"
 EOSCRIPT
 
 chmod +x "${DEPLOY_TMP}/start_client.sh"
