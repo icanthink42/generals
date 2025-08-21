@@ -1,7 +1,6 @@
 use generals::shared::{map::Cell, MapView, Terrain, game_state::GameState};
 use parking_lot::RwLock;
 use uuid::Uuid;
-use rand::Rng;
 
 use crate::Server;
 
@@ -29,23 +28,6 @@ impl Map {
         self.cells.write()[self.get_cell_id(x, y)] = cell;
     }
 
-    pub fn get_adjacent_cells(&self, x: usize, y: usize) -> Vec<usize> {
-        let mut cells = Vec::new();
-        if x > 0 {
-            cells.push(self.get_cell_id(x - 1, y));
-        }
-        if x < self.width - 1 {
-            cells.push(self.get_cell_id(x + 1, y));
-        }
-        if y > 0 {
-            cells.push(self.get_cell_id(x, y - 1));
-        }
-        if y < self.height - 1 {
-            cells.push(self.get_cell_id(x, y + 1));
-        }
-        cells
-    }
-
     pub fn get_visable_cells(&self, player: Uuid, server: &Server) -> Vec<usize> {
         // Check if player is alive
         if let Some(player_info) = server.players.read().get(&player) {
@@ -57,14 +39,35 @@ impl Map {
 
         let mut visible = Vec::new();
         let cells = self.cells.read();
+        let config = server.config.read();
 
-        // First find all cells owned by the player
+        // Helper function to get cells within a radius
+        let get_cells_in_radius = |center_x: usize, center_y: usize, radius: usize| {
+            let mut cells = Vec::new();
+            let min_x = center_x.saturating_sub(radius);
+            let max_x = (center_x + radius + 1).min(self.width);
+            let min_y = center_y.saturating_sub(radius);
+            let max_y = (center_y + radius + 1).min(self.height);
+
+            for y in min_y..max_y {
+                for x in min_x..max_x {
+                    if (x as i32 - center_x as i32).abs() + (y as i32 - center_y as i32).abs() <= radius as i32 {
+                        cells.push(self.get_cell_id(x, y));
+                    }
+                }
+            }
+            cells
+        };
+
+        // Find all cells owned by the player and their visibility radius
         for (id, cell) in cells.iter().enumerate() {
             if cell.owner_id == Some(player) {
-                visible.push(id);
-                // Add all adjacent cells
                 let (x, y) = (id % self.width, id / self.width);
-                visible.extend(self.get_adjacent_cells(x, y));
+                let radius = match cell.terrain {
+                    Terrain::City | Terrain::Capital => config.city_visibility_radius,
+                    _ => config.tile_visibility_radius,
+                };
+                visible.extend(get_cells_in_radius(x, y, radius));
             }
         }
 

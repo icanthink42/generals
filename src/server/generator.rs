@@ -2,12 +2,17 @@ use rand::Rng;
 use generals::shared::terrain::Terrain;
 use crate::map::Map;
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerrainConfig {
     pub mountain_density: f32,  // 0.0 to 1.0, percentage of map to be mountains
     pub swamp_density: f32,     // 0.0 to 1.0
     pub desert_density: f32,    // 0.0 to 1.0
     pub city_density: f32,      // 0.0 to 1.0
     pub clustering_factor: f32,  // 0.0 to 1.0, how much terrain should cluster together
+    pub map_width: usize,       // Width of the game map
+    pub map_height: usize,      // Height of the game map
 }
 
 impl Default for TerrainConfig {
@@ -18,12 +23,14 @@ impl Default for TerrainConfig {
             desert_density: 0.15,     // 15% deserts
             city_density: 0.04,       // 4% cities
             clustering_factor: 0.7,    // High clustering
+            map_width: 20,           // Default map width
+            map_height: 20,          // Default map height
         }
     }
 }
 
 pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
-    let mut map = Map::new(width, height);
+    let map = Map::new(width, height);
     let mut rng = rand::thread_rng();
     let total_cells = width * height;
 

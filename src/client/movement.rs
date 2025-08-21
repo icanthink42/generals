@@ -4,7 +4,10 @@ use web_sys;
 use parking_lot::Mutex;
 #[cfg(target_arch = "wasm32")]
 use std::collections::HashMap;
+
+#[cfg(target_arch = "wasm32")]
 use crate::shared::path::Path;
+#[cfg(target_arch = "wasm32")]
 use crate::shared::{SBPacket, sb_packet::UpdatePaths};
 
 #[cfg(target_arch = "wasm32")]

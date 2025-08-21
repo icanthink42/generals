@@ -49,13 +49,15 @@ impl Server {
             });
         }
 
-        // Every 2 ticks (1 second), update troops for capitals and cities
-        if tick_count % 2 == 0 {
+        let config = self.config.read();
+
+        // Check for city and capital growth
+        if tick_count % config.city_growth_tick == 0 {
             self.map.tick_troops();
         }
 
-        // Every 20 ticks (10 seconds), increment troops on all owned tiles
-        if tick_count % 50 == 0 {
+        // Check for regular tile growth
+        if tick_count % config.tile_growth_tick == 0 {
             self.map.tick_owned_tiles();
         }
 

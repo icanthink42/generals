@@ -2,6 +2,7 @@ mod player;
 mod map;
 mod tick;
 mod generator;
+mod config;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,7 +21,7 @@ use uuid::Uuid;
 
 use crate::map::Map;
 use crate::player::Player;
-use generator::{TerrainConfig, generate_map};
+use generator::{generate_map};
 
 async fn ws_handler(ws: WebSocketUpgrade, server: Arc<Server>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, server.clone()))
@@ -121,6 +122,7 @@ struct Server {
     map: Arc<Map>,
     game_state: RwLock<GameState>,
     tick_counter: RwLock<u32>,
+    config: config::SharedConfig,
 }
 
 impl Server {
@@ -147,12 +149,13 @@ impl Server {
         self.sync_map();
     }
 
-    fn new(map: Map) -> Self {
+    fn new(map: Map, config: config::SharedConfig) -> Self {
         Self {
             players: RwLock::new(HashMap::new()),
             map: Arc::new(map),
             game_state: RwLock::new(GameState::Lobby),
             tick_counter: RwLock::new(0),
+            config,
         }
     }
 
@@ -186,25 +189,43 @@ impl Server {
 
 #[tokio::main]
 async fn main() {
-    // Create a map with interesting terrain
-    let config = TerrainConfig {
-        mountain_density: 0.12,    // 12% mountains
-        desert_density: 0.15,      // 15% desert
-        swamp_density: 0.08,       // 8% swamps
-        city_density: 0.04,        // 4% cities
-        clustering_factor: 0.7,    // High clustering for natural-looking terrain
+    // Load or create default config
+    let config = config::create_shared_config(Some("config.toml"));
+
+    // Create a map using config values
+    let map = {
+        let cfg = config.read();
+        let terrain_config = cfg.terrain_config.clone();
+        generate_map(
+            terrain_config.map_width,
+            terrain_config.map_height,
+            terrain_config
+        )
     };
-    let map = generate_map(20, 20, config);
-    let server = Arc::new(Server::new(map));
+
+    let server = Arc::new(Server::new(map, config.clone()));
 
     println!("Generals.io server (WS) starting on 127.0.0.1:1812/ws...");
 
     // Start tick loop
     let tick_server = server.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+    let tick_config = config.clone();
+        tokio::spawn(async move {
+        let mut last_tick_ms = tick_config.read().tick_ms;
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(last_tick_ms as u64));
+
         loop {
             interval.tick().await;
+
+            // Update interval if tick_ms has changed
+            let current_tick_ms = tick_config.read().tick_ms;
+
+            if (current_tick_ms - last_tick_ms).abs() > 0.001 {  // Use small epsilon for float comparison
+                println!("Updating tick rate from {}ms to {}ms", last_tick_ms, current_tick_ms);
+                interval = tokio::time::interval(tokio::time::Duration::from_millis(current_tick_ms as u64));
+                last_tick_ms = current_tick_ms;
+            }
+
             tick_server.tick().await;
         }
     });

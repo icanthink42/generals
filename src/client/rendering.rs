@@ -1,5 +1,6 @@
 #[cfg(target_arch = "wasm32")]
 use super::game::Game;
+#[cfg(target_arch = "wasm32")]
 use crate::shared::game_state::GameState;
 
 #[cfg(target_arch = "wasm32")]

@@ -19,6 +19,8 @@ parking_lot = { version = "0.12.4", features = ["nightly", "serde"] }
 log = "0.4"
 rand = { version = "0.8", features = ["getrandom"] }
 getrandom = { version = "0.2", features = ["js"] }
+toml = "0.8"
+notify = { version = "6.1", features = ["serde"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -58,6 +60,8 @@ features = [
 tokio = { version = "1.39", features = ["rt-multi-thread", "macros"] }
 axum = { version = "0.7", features = ["ws"] }
 futures-util = { version = "0.3" }
+toml = "0.8"
+notify = "6.1"
 
 
 
