@@ -1,4 +1,26 @@
-use generals::shared::{map::Cell, MapView, Terrain, game_state::GameState};
+use generals::shared::{map::Cell as SharedCell, MapView, Terrain, game_state::GameState};
+
+#[derive(Debug, Clone)]
+pub struct Cell {
+    pub terrain: Terrain,
+    pub troops: u32,
+    pub owner_id: Option<Uuid>,
+}
+
+impl Cell {
+    pub fn to_view(&self, in_vision: bool, terrain_visible: bool) -> Option<SharedCell> {
+        if !in_vision && !terrain_visible {
+            return None;
+        }
+
+        Some(SharedCell {
+            terrain: self.terrain,
+            troops: if in_vision { self.troops } else { 0 },
+            owner_id: if in_vision { self.owner_id } else { None },
+            fog_of_war: !in_vision && terrain_visible,
+        })
+    }
+}
 use parking_lot::RwLock;
 use uuid::Uuid;
 
@@ -28,66 +50,69 @@ impl Map {
         self.cells.write()[self.get_cell_id(x, y)] = cell;
     }
 
-    pub fn get_visable_cells(&self, player: Uuid, server: &Server) -> Vec<usize> {
-        // Check if player is alive
-        if let Some(player_info) = server.players.read().get(&player) {
-            if !*player_info.alive.read() {
-                // Dead players can see everything
-                return (0..self.width * self.height).collect();
-            }
-        }
-
-        let mut visible = Vec::new();
+    pub fn to_map_view(&self, player: Uuid, server: &Server) -> MapView {
+        let mut visible_cells = std::collections::HashMap::new();
         let cells = self.cells.read();
         let config = server.config.read();
 
-        // Helper function to get cells within a radius
-        let get_cells_in_radius = |center_x: usize, center_y: usize, radius: usize| {
-            let mut cells = Vec::new();
-            let min_x = center_x.saturating_sub(radius);
-            let max_x = (center_x + radius + 1).min(self.width);
-            let min_y = center_y.saturating_sub(radius);
-            let max_y = (center_y + radius + 1).min(self.height);
-
-            for y in min_y..max_y {
-                for x in min_x..max_x {
-                    if (x as i32 - center_x as i32).abs() + (y as i32 - center_y as i32).abs() <= radius as i32 {
-                        cells.push(self.get_cell_id(x, y));
+        // Check if player is alive - dead players can see everything
+        if let Some(player_info) = server.players.read().get(&player) {
+            if !*player_info.alive.read() {
+                // Dead players can see everything
+                for (id, cell) in cells.iter().enumerate() {
+                    if let Some(view) = cell.to_view(true, true) {
+                        visible_cells.insert(id, view);
                     }
                 }
+                return MapView { width: self.width, height: self.height, cells: visible_cells };
             }
-            cells
-        };
+        }
 
-        // Find all cells owned by the player and their visibility radius
+        // First pass: Calculate visible cells based on ownership
+        let mut visible_ids = Vec::new();
         for (id, cell) in cells.iter().enumerate() {
             if cell.owner_id == Some(player) {
-                let (x, y) = (id % self.width, id / self.width);
+                let (center_x, center_y) = (id % self.width, id / self.width);
                 let radius = match cell.terrain {
                     Terrain::City | Terrain::Capital => config.city_visibility_radius,
                     _ => config.tile_visibility_radius,
                 };
-                visible.extend(get_cells_in_radius(x, y, radius));
+
+                // Calculate visible cell IDs within radius
+                let min_x = center_x.saturating_sub(radius);
+                let max_x = (center_x + radius + 1).min(self.width);
+                let min_y = center_y.saturating_sub(radius);
+                let max_y = (center_y + radius + 1).min(self.height);
+
+                for y in min_y..max_y {
+                    for x in min_x..max_x {
+                        if (x as i32 - center_x as i32).abs() + (y as i32 - center_y as i32).abs() <= radius as i32 {
+                            visible_ids.push(self.get_cell_id(x, y));
+                        }
+                    }
+                }
             }
         }
 
-        // Remove duplicates
-        visible.sort_unstable();
-        visible.dedup();
-        visible
-    }
+        // Remove duplicates from visible IDs
+        visible_ids.sort_unstable();
+        visible_ids.dedup();
 
-        pub fn to_map_view(&self, player: Uuid, server: &Server) -> MapView {
-        let visible_cell_ids = self.get_visable_cells(player, server);
-        let all_cells = self.cells.read();
+        // Second pass: Add visible cells and handle fog of war for mountains/swamps
+        for (id, cell) in cells.iter().enumerate() {
+            let in_vision = visible_ids.contains(&id);
+            let terrain_visible = match cell.terrain {
+                Terrain::Mountain => !config.fow_mountains,
+                Terrain::Swamp => !config.fow_swamps,
+                _ => false
+            };
 
-        let mut cells = std::collections::HashMap::new();
-        // Only copy visible cells
-        for &id in &visible_cell_ids {
-            cells.insert(id, all_cells[id].clone());
+            if let Some(view) = cell.to_view(in_vision, terrain_visible) {
+                visible_cells.insert(id, view);
+            }
         }
 
-        MapView { width: self.width, height: self.height, cells }
+        MapView { width: self.width, height: self.height, cells: visible_cells }
     }
 
     pub fn add_player_capital(&self, player: Uuid) {

@@ -16,4 +16,5 @@ pub struct Cell {
     pub terrain: Terrain,
     pub troops: u32,
     pub owner_id: Option<Uuid>,
+    pub fog_of_war: bool,
 }

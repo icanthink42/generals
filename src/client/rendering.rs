@@ -171,8 +171,11 @@ impl Game {
 
                         // Draw cell background
                         if let Some(cell) = map.cells.get(&cell_id) {
-                            if let Some(owner_id) = cell.owner_id {
-                                // Find the owner's color
+                            if cell.fog_of_war {
+                                // Fog of war cell - show terrain but with darker background
+                                context.set_fill_style_str("#2a2a2a");  // Dark gray for fog of war
+                            } else if let Some(owner_id) = cell.owner_id {
+                                // Fully visible cell with owner
                                 let players = self.players.lock();
                                 if let Some(owner) = players.iter().find(|p| p.id == owner_id) {
                                     context.set_fill_style_str(&format!("rgba({}, {}, {}, {})",
@@ -202,17 +205,28 @@ impl Game {
                                 context.set_font(&format!("{}px Arial", cell_size * 0.9));
                                 context.set_text_align("center");
                                 context.set_text_baseline("middle");
-                                let _ = context.fill_text(
-                                    emoji,
-                                    x + cell_size / 2.0,
-                                    y + cell_size / 2.0,
-                                );
+                                if cell.fog_of_war {
+                                    // Draw terrain emoji with reduced opacity for fog of war
+                                    context.set_global_alpha(0.5);
+                                    let _ = context.fill_text(
+                                        emoji,
+                                        x + cell_size / 2.0,
+                                        y + cell_size / 2.0,
+                                    );
+                                    context.set_global_alpha(1.0);
+                                } else {
+                                    let _ = context.fill_text(
+                                        emoji,
+                                        x + cell_size / 2.0,
+                                        y + cell_size / 2.0,
+                                    );
+                                }
                             }
                         }
 
-                        // Draw troop count if cell is visible and has troops
+                        // Draw troop count if cell is visible and not in fog of war
                         if let Some(cell) = map.cells.get(&cell_id) {
-                            if cell.troops > 0 {
+                            if cell.troops > 0 && !cell.fog_of_war {
                                 context.set_fill_style_str("white");
                                 context.set_text_align("center");
                                 context.set_text_baseline("middle");

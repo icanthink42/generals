@@ -16,6 +16,8 @@ pub struct Config {
     pub capital_growth_tick: u32,
     pub city_visibility_radius: usize,
     pub tile_visibility_radius: usize,
+    pub fow_mountains: bool,
+    pub fow_swamps: bool,
 }
 
 impl Config {
@@ -42,6 +44,8 @@ impl Config {
             capital_growth_tick: 5,
             city_visibility_radius: 3,
             tile_visibility_radius: 1,
+            fow_mountains: false,
+            fow_swamps: false,
         }
     }
 }
