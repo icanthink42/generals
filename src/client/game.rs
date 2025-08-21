@@ -17,6 +17,8 @@ use crate::shared::path::Path;
 #[cfg(target_arch = "wasm32")]
 use crate::shared::{map::MapView, PlayerView, SBPacket};
 #[cfg(target_arch = "wasm32")]
+use crate::shared::sb_packet::UpdatePaths;
+#[cfg(target_arch = "wasm32")]
 use crate::client::websocket::WebSocketClient;
 
 
@@ -29,6 +31,7 @@ pub struct Game {
     pub canvas: Mutex<HtmlCanvasElement>,
     pub context: Mutex<CanvasRenderingContext2d>,
     pub selected_cell: Mutex<Option<usize>>,
+    pub selected_path: Mutex<Option<u32>>,  // ID of the currently selected path
     pub players: Mutex<Vec<PlayerView>>,
     pub paths: Mutex<HashMap<u32, Mutex<Path>>>,
     pub next_path_id: Mutex<u32>,
@@ -71,6 +74,7 @@ impl Game {
             canvas: Mutex::new(canvas),
             context: Mutex::new(context),
             selected_cell: Mutex::new(None),
+            selected_path: Mutex::new(None),
             players: Mutex::new(vec![]),
             paths: Mutex::new(HashMap::new()),
             next_path_id: Mutex::new(0),
@@ -84,19 +88,38 @@ impl Game {
         &self.canvas
     }
 
-    pub fn tick_paths(&self) {
-        let mut paths = self.paths.lock();
-        // Remove first tile from each path and remove empty paths
-        paths.retain(|_, path| {
+
+    pub fn handle_movement_confirmed(&self, path_id: u32, valid_until: u32) {
+        let paths = self.paths.lock();
+        if let Some(path) = paths.get(&path_id) {
             let mut path = path.lock();
-            path.remove_front(1);
-            !path.tile_ids.is_empty()
-        });
+            path.valid_until = valid_until;
+        }
     }
 
     pub fn handle_click(&self, client_x: f64, client_y: f64) {
-        if let Some(cell_id) = self.get_cell_at_position(client_x, client_y) {
-            self.selected_cell.lock().replace(cell_id);
+        if let Some(new_cell_id) = self.get_cell_at_position(client_x, client_y) {
+            // Create a new path starting at this cell
+            let mut next_id = self.next_path_id.lock();
+            let path_id = *next_id;
+            *next_id += 1;
+
+            // Create a new path with just this cell
+            let mut paths = self.paths.lock();
+            paths.insert(path_id, Mutex::new(Path::new(vec![new_cell_id as u32])));
+
+            // Set this as the selected path
+            *self.selected_path.lock() = Some(path_id);
+
+            // Send just this new path to the server
+            let mut new_paths = HashMap::new();
+            new_paths.insert(path_id, Path::new(vec![new_cell_id as u32]));
+            if let Ok(bytes) = bincode::serialize(&SBPacket::UpdatePaths(UpdatePaths { paths: new_paths })) {
+                self.websocket.lock().send_binary(bytes);
+            }
+
+            // Update selected cell
+            self.selected_cell.lock().replace(new_cell_id);
         }
 
         // Check if we're in lobby and clicked the start button

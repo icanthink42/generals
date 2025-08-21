@@ -95,36 +95,19 @@ impl Game {
         let new_cell = new_y * map.width + new_x;
         self.selected_cell.lock().replace(new_cell);
 
-        // Update or create path
+        // Only extend the selected path with WASD
         let mut paths = self.paths.lock();
-
-        // Find if this cell is part of an existing path
-        let mut found_path = None;
-        for (start_id, path) in paths.iter() {
-            let path_guard = path.lock();
-            if path_guard.tile_ids.contains(&(current_cell as u32)) {
-                found_path = Some(*start_id);
-                break;
-            }
-        }
-
-        // If it's part of an existing path, extend that path
-        if let Some(start_id) = found_path {
-            if let Some(path) = paths.get(&start_id) {
+        if let Some(path_id) = *self.selected_path.lock() {
+            if let Some(path) = paths.get(&path_id) {
                 path.lock().tile_ids.push(new_cell as u32);
-            }
-        } else {
-            // Create new path with next ID
-            let mut next_id = self.next_path_id.lock();
-            let path_id = *next_id;
-            *next_id += 1;
-            paths.insert(path_id, Mutex::new(Path::new(vec![current_cell as u32, new_cell as u32])));
-        }
 
-        // Send updated paths to server
-        let paths_clone: HashMap<_, _> = paths.iter().map(|(&k, v)| (k, v.lock().clone())).collect();
-        if let Ok(bytes) = bincode::serialize(&SBPacket::UpdatePaths(UpdatePaths { paths: paths_clone })) {
-            self.websocket.lock().send_binary(bytes);
+                // Send just the updated path to server
+                let mut updated_paths = HashMap::new();
+                updated_paths.insert(path_id, path.lock().clone());
+                if let Ok(bytes) = bincode::serialize(&SBPacket::UpdatePaths(UpdatePaths { paths: updated_paths })) {
+                    self.websocket.lock().send_binary(bytes);
+                }
+            }
         }
 
         true

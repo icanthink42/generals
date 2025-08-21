@@ -55,8 +55,16 @@ impl Player {
                 }
             }
             SBPacket::UpdatePaths(update_paths) => {
-                for (id, path) in update_paths.paths {
-                    self.paths.write().insert(id, path);
+                let mut paths = self.paths.write();
+                for (id, mut path) in update_paths.paths {
+                    // For existing paths, keep their valid_until value
+                    if let Some(existing_path) = paths.get(&id) {
+                        path.valid_until = existing_path.valid_until;
+                    } else {
+                        // New paths start at 0
+                        path.valid_until = 0;
+                    }
+                    paths.insert(id, path);
                 }
             }
             SBPacket::StartGame => {

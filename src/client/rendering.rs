@@ -243,18 +243,21 @@ impl Game {
                         let paths = self.paths.lock();
                         for path in paths.values() {
                             let path_guard = path.lock();
-                            if path_guard.tile_ids.contains(&(cell_id as u32)) {
-                                // Use the first tile in the path for the color
-                                if let Some(&first_tile) = path_guard.tile_ids.first() {
-                                    context.set_stroke_style_str(&self.get_path_color(first_tile));
-                                    context.set_line_width(2.0);
-                                    let padding = 1.0;
-                                    context.stroke_rect(
-                                        x - padding/2.0,
-                                        y - padding/2.0,
-                                        cell_size + padding,
-                                        cell_size + padding
-                                    );
+                            let tile_index = path_guard.tile_ids.iter().position(|&id| id == cell_id as u32);
+                            if let Some(index) = tile_index {
+                                if index as u32 > path_guard.valid_until {
+                                    // Use the first tile in the path for the color
+                                    if let Some(&first_tile) = path_guard.tile_ids.first() {
+                                        context.set_stroke_style_str(&self.get_path_color(first_tile));
+                                        context.set_line_width(2.0);
+                                        let padding = 1.0;
+                                        context.stroke_rect(
+                                            x - padding/2.0,
+                                            y - padding/2.0,
+                                            cell_size + padding,
+                                            cell_size + padding
+                                        );
+                                    }
                                 }
                             }
                         }

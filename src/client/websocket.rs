@@ -106,13 +106,14 @@ impl WebSocketClient {
                 info!("Processing sync players packet");
                 *game.players.lock() = sync_players.players;
             }
-            CBPacket::TickPaths => {
-                info!("Processing tick paths packet");
-                game.tick_paths();
-            }
+
             CBPacket::SetGameState(game_state) => {
                 info!("Processing set game state packet");
                 *game.game_state.lock() = game_state;
+            }
+            CBPacket::MovementConfirmed(movement) => {
+                info!("Processing movement confirmed packet");
+                game.handle_movement_confirmed(movement.path_id, movement.valid_until);
             }
         }
     }

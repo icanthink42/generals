@@ -1,11 +1,12 @@
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Path {
     pub tile_ids: Vec<u32>,
+    pub valid_until: u32,
 }
 
 impl Path {
     pub fn new(tile_ids: Vec<u32>) -> Self {
-        Self { tile_ids }
+        Self { tile_ids, valid_until: 0 }
     }
 
     pub fn remove_front(&mut self, n: usize) {
