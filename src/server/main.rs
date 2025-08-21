@@ -205,7 +205,7 @@ async fn main() {
 
     let server = Arc::new(Server::new(map, config.clone()));
 
-    println!("Generals.io server (WS) starting on 127.0.0.1:1812/ws...");
+    println!("Generals.io server (WS) starting on 0.0.0.0:1812/ws...");
 
     // Start tick loop
     let tick_server = server.clone();
@@ -231,6 +231,6 @@ async fn main() {
     });
 
     let app = Router::new().route("/ws", get(move |ws| ws_handler(ws, server.clone())));
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:1812").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:1812").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

@@ -28,8 +28,14 @@ pub struct WebSocketClient {
 #[cfg(target_arch = "wasm32")]
 impl WebSocketClient {
         pub fn new() -> Result<WebSocketClient, JsValue> {
+        let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window found"))?;
+        let server_url = window
+            .get("SERVER_URL")
+            .and_then(|v| v.as_string())
+            .unwrap_or_else(|| "ws://127.0.0.1:1812/ws".to_string());
+
         let client = Rc::new(RefCell::new(
-            PollingClient::new("ws://127.0.0.1:1812/ws")
+            PollingClient::new(&server_url)
                 .map_err(|e| JsValue::from_str(&format!("Failed to create WebSocket: {:?}", e)))?
         ));
 
