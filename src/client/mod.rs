@@ -32,6 +32,15 @@ pub fn start() -> Result<(), JsValue> {
     let websocket = Rc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
     let game = Game::new(websocket.clone()).expect("Failed to create game");
 
+    // Expose game instance to JavaScript global scope
+    let window = web_sys::window().unwrap();
+    let game_js = game::GameJs::new(game.clone());
+    js_sys::Reflect::set(
+        &window,
+        &JsValue::from_str("game"),
+        &JsValue::from(game_js),
+    )?;
+
 
 
     // Set up resize handler

@@ -47,6 +47,43 @@ pub struct Game {
     pub text_inputs: Mutex<Vec<TextInput>>,
     pub player_name: Mutex<String>,
     pub connected: Mutex<bool>,
+    pub p_press_count: Mutex<u32>,
+    pub last_p_press: Mutex<f64>,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub struct GameJs {
+    game: Rc<Game>,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+impl GameJs {
+    #[wasm_bindgen]
+    pub fn play_again(&self) {
+        if let Ok(bytes) = bincode::serialize(&SBPacket::PlayAgain) {
+            self.game.websocket.lock().send_binary(bytes);
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn start_game(&self) {
+        if let Ok(bytes) = bincode::serialize(&SBPacket::StartGame) {
+            self.game.websocket.lock().send_binary(bytes);
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl GameJs {
+    pub fn new(game: Rc<Game>) -> Self {
+        // Disable the start game button (second button)
+        if let Some(start_button) = game.buttons.lock().get_mut(1) {
+            start_button.enabled = false;
+        }
+        Self { game }
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -98,6 +135,8 @@ impl Game {
                 text_inputs: Mutex::new(Vec::new()),
                 player_name: Mutex::new(String::new()),
                 connected: Mutex::new(false),
+                p_press_count: Mutex::new(0),
+                last_p_press: Mutex::new(0.0),
             });
 
         let buttons = crate::client::ui::get_buttons(game.clone(), logical_width, logical_height);
@@ -203,3 +242,4 @@ impl Game {
         }
     }
 }
+

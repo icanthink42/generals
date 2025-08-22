@@ -187,6 +187,7 @@ impl Server {
     }
 
     pub fn reset_map(&self) {
+        // Reset the map cells
         let mut cells = self.map.cells.write();
         let config = self.config.read().terrain_config.clone();
         *cells = generate_map_tiles(
@@ -194,6 +195,17 @@ impl Server {
             self.map.height,
             &config
         );
+        drop(cells); // Release the write lock before adding capitals
+
+        // Reset player states and add capitals
+        let players = self.players.read();
+        for player in players.values() {
+            *player.alive.write() = true;
+            player.paths.write().clear();
+            self.map.add_player_capital(player.id());
+        }
+
+        // Sync the updated map to all players
         self.sync_map();
     }
 }
