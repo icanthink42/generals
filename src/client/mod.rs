@@ -47,9 +47,22 @@ pub fn start() -> Result<(), JsValue> {
     let resize_game = game.clone();
     let resize_handler = Closure::wrap(Box::new(move || {
         let window = web_sys::window().unwrap();
+        let dpr = window.device_pixel_ratio();
+        let width = window.inner_width().unwrap().as_f64().unwrap() * dpr;
+        let height = window.inner_height().unwrap().as_f64().unwrap() * dpr;
+
         let canvas = resize_game.canvas().lock();
-        canvas.set_width(window.inner_width().unwrap().as_f64().unwrap() as u32);
-        canvas.set_height(window.inner_height().unwrap().as_f64().unwrap() as u32);
+        canvas.set_width(width as u32);
+        canvas.set_height(height as u32);
+
+        // Set CSS size
+        canvas.style().set_property("width", &format!("{}px", width/dpr)).unwrap();
+        canvas.style().set_property("height", &format!("{}px", height/dpr)).unwrap();
+
+        // Reset the scale transform
+        let context = resize_game.context().lock();
+        context.reset_transform().unwrap();
+        context.scale(dpr, dpr).unwrap();
     }) as Box<dyn FnMut()>);
 
     web_sys::window()

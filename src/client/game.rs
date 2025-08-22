@@ -157,6 +157,10 @@ impl Game {
         &self.canvas
     }
 
+    pub fn context(&self) -> &Mutex<CanvasRenderingContext2d> {
+        &self.context
+    }
+
 
     pub fn handle_movement_confirmed(&self, path_id: u32, valid_until: u32) {
         let paths = self.paths.lock();
