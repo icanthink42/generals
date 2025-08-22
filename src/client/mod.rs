@@ -2,6 +2,8 @@ mod game;
 mod movement;
 mod rendering;
 mod websocket;
+mod button;
+mod ui;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;

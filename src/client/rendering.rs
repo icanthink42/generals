@@ -90,23 +90,8 @@ impl Game {
         context.set_text_baseline("middle");
         let _ = context.fill_text("Waiting for game to begin...", logical_width / 2.0, logical_height / 2.0 - 40.0);
 
-        // Draw start button
-        let button_width = 200.0;
-        let button_height = 50.0;
-        let button_x = (logical_width - button_width) / 2.0;
-        let button_y = logical_height / 2.0 + 20.0;
-
-        // Draw button background
-        context.set_fill_style_str("#4CAF50");  // Green color
-        context.fill_rect(button_x, button_y, button_width, button_height);
-
-        // Draw button text
-        context.set_font("20px Arial");
-        context.set_fill_style_str("white");
-        let _ = context.fill_text("Start Game", logical_width / 2.0, button_y + button_height / 2.0);
-
-        // Store button coordinates for click handling
-        *self.start_button_bounds.lock() = Some((button_x, button_y, button_width, button_height));
+        // Render UI elements
+        self.ui.lock().render(context);
     }
 
     pub fn render_grid(&self) {

@@ -20,6 +20,8 @@ use crate::shared::{map::MapView, PlayerView, SBPacket};
 use crate::shared::sb_packet::UpdatePaths;
 #[cfg(target_arch = "wasm32")]
 use crate::client::websocket::WebSocketClient;
+#[cfg(target_arch = "wasm32")]
+use crate::client::ui::UI;
 
 
 #[cfg(target_arch = "wasm32")]
@@ -37,7 +39,7 @@ pub struct Game {
     pub next_path_id: Mutex<u32>,
     pub websocket: Rc<Mutex<WebSocketClient>>,
     pub game_state: Mutex<GameState>,
-    pub start_button_bounds: Mutex<Option<(f64, f64, f64, f64)>>,  // x, y, width, height
+    pub ui: Mutex<UI>
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -78,9 +80,9 @@ impl Game {
             players: Mutex::new(vec![]),
             paths: Mutex::new(HashMap::new()),
             next_path_id: Mutex::new(0),
-            websocket,
+            websocket: websocket.clone(),
             game_state: Mutex::new(GameState::Lobby),
-            start_button_bounds: Mutex::new(None),
+            ui: Mutex::new(UI::new(websocket.clone())),
         })
     }
 
@@ -98,6 +100,12 @@ impl Game {
     }
 
     pub fn handle_click(&self, client_x: f64, client_y: f64) {
+        // Check UI elements first
+        if self.ui.lock().handle_click(client_x, client_y) {
+            return;
+        }
+
+        // Handle grid clicks
         if let Some(new_cell_id) = self.get_cell_at_position(client_x, client_y) {
             // Create a new path starting at this cell
             let mut next_id = self.next_path_id.lock();
@@ -120,19 +128,6 @@ impl Game {
 
             // Update selected cell
             self.selected_cell.lock().replace(new_cell_id);
-        }
-
-        // Check if we're in lobby and clicked the start button
-        if *self.game_state.lock() == GameState::Lobby {
-            if let Some((button_x, button_y, button_width, button_height)) = *self.start_button_bounds.lock() {
-                if client_x >= button_x && client_x <= button_x + button_width &&
-                   client_y >= button_y && client_y <= button_y + button_height {
-                    // Send start game packet
-                    if let Ok(bytes) = bincode::serialize(&SBPacket::StartGame) {
-                        self.websocket.lock().send_binary(bytes);
-                    }
-                }
-            }
         }
     }
 }

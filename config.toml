@@ -17,5 +17,5 @@ desert_density = 0.15      # 15% desert
 swamp_density = 0.08       # 8% swamps
 city_density = 0.04        # 4% cities
 clustering_factor = 0.7    # High clustering for natural-looking terrain
-map_width = 20            # Width of the game map
-map_height = 20           # Height of the game map
+map_width = 50            # Width of the game map
+map_height = 50           # Height of the game map
