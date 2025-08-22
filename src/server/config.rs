@@ -64,10 +64,7 @@ pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedCon
 
     // Set up hot reloading if path is provided
     if let Some(path) = path {
-        let path = path.as_ref().canonicalize().unwrap_or_else(|e| {
-            eprintln!("Failed to canonicalize path: {e}, using as-is");
-            path.as_ref().to_path_buf()
-        });
+        let path = path.as_ref().to_path_buf();
         let config_clone = shared_config.clone();
 
         tokio::spawn(async move {
@@ -94,11 +91,17 @@ pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedCon
 
 
             while let Some(res) = rx.recv().await {
-                match res {
-                    Ok(event) => {
-                                                if event.paths.iter().any(|p| p.canonicalize().unwrap() == path.canonicalize().unwrap()) {
+                if let Ok(event) = res {
+                    // Compare paths without canonicalization to handle non-existent files
+                    if event.paths.iter().any(|p| p.file_name() == path.file_name()) {
+                        // Wait a short moment to let the file system settle
+                        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+                        // Only try to load if the file exists
+                        if path.exists() {
                             match Config::load(&path) {
                                 Ok(new_config) => {
+                                    println!("Successfully reloaded config");
                                     *config_clone.write() = new_config;
                                 }
                                 Err(e) => {
@@ -107,7 +110,6 @@ pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedCon
                             }
                         }
                     }
-                    Err(e) => eprintln!("Watch error: {e}"),
                 }
             }
         });

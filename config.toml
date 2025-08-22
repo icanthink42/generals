@@ -7,7 +7,7 @@ capital_growth_tick = 2   # Ticks between capital tile growth
 # Visibility settings
 city_visibility_radius = 3  # How far you can see around cities
 tile_visibility_radius = 1  # How far you can see around regular tiles
-fow_mountains = false
+fow_mountains = true
 fow_swamps = false
 
 # Terrain generation settings
