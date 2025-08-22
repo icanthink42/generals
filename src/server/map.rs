@@ -7,6 +7,16 @@ pub struct Cell {
     pub owner_id: Option<Uuid>,
 }
 
+impl Default for Cell {
+    fn default() -> Self {
+        Self {
+            terrain: Terrain::Default,
+            troops: 0,
+            owner_id: None,
+        }
+    }
+}
+
 impl Cell {
     pub fn to_view(&self, in_vision: bool, terrain_visible: bool) -> Option<SharedCell> {
         if !in_vision && !terrain_visible {

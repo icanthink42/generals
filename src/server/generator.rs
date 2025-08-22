@@ -1,6 +1,6 @@
 use rand::Rng;
 use generals::shared::terrain::Terrain;
-use crate::map::Map;
+use crate::map::{Map, Cell};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,10 +29,10 @@ impl Default for TerrainConfig {
     }
 }
 
-pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
-    let map = Map::new(width, height);
+pub fn generate_map_tiles(width: usize, height: usize, config: &TerrainConfig) -> Vec<Cell> {
     let mut rng = rand::thread_rng();
     let total_cells = width * height;
+    let mut cells = vec![Cell::default(); total_cells];
 
     // Helper function to get neighboring cells
     let get_neighbors = |idx: usize| -> Vec<usize> {
@@ -68,7 +68,6 @@ pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
 
         let target_count = (total_cells as f32 * density) as usize;
         let mut placed = 0;
-        let mut cells = map.cells.write();
 
         while placed < target_count {
             let mut pos = rng.gen_range(0..total_cells);
@@ -94,15 +93,15 @@ pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
                 }
             }
 
-                            // Only place if the cell is empty (default terrain)
-                if cells[pos].terrain == Terrain::Default {
-                    cells[pos].terrain = terrain;
-                    // Add troops to cities
-                    if terrain == Terrain::City {
-                        cells[pos].troops = rng.gen_range(30..=50);
-                    }
-                    placed += 1;
+            // Only place if the cell is empty (default terrain)
+            if cells[pos].terrain == Terrain::Default {
+                cells[pos].terrain = terrain;
+                // Add troops to cities
+                if terrain == Terrain::City {
+                    cells[pos].troops = rng.gen_range(30..=50);
                 }
+                placed += 1;
+            }
         }
     };
 
@@ -112,6 +111,16 @@ pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
     place_terrain(Terrain::Swamp);
     place_terrain(Terrain::City);
 
+    cells
+}
+
+pub fn generate_map(width: usize, height: usize, config: TerrainConfig) -> Map {
+    let map = Map::new(width, height);
+    let tiles = generate_map_tiles(width, height, &config);
+    {
+        let mut cells = map.cells.write();
+        cells.clone_from_slice(&tiles);
+    }
     map
 }
 

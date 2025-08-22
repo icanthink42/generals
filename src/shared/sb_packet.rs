@@ -8,6 +8,7 @@ pub enum SBPacket {
     GiveMeMap,
     UpdatePaths(UpdatePaths),
     StartGame,
+    PlayAgain,
 }
 
 

@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use crate::map::Map;
 use crate::player::Player;
-use generator::{generate_map};
+use generator::{generate_map, generate_map_tiles};
 
 async fn ws_handler(ws: WebSocketUpgrade, server: Arc<Server>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, server.clone()))
@@ -90,7 +90,7 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                     }
 
                     // Send current game state to the new player
-                    let game_state = (*server.game_state.read());
+                    let game_state = *server.game_state.read();
                     let state_packet = CBPacket::SetGameState(game_state);
                     if let Ok(resp) = bincode::serialize(&state_packet) {
                         player.send_bytes(resp);
@@ -184,6 +184,17 @@ impl Server {
                 player.send_bytes(bytes.clone());
             }
         }
+    }
+
+    pub fn reset_map(&self) {
+        let mut cells = self.map.cells.write();
+        let config = self.config.read().terrain_config.clone();
+        *cells = generate_map_tiles(
+            self.map.width,
+            self.map.height,
+            &config
+        );
+        self.sync_map();
     }
 }
 

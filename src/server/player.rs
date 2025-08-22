@@ -70,6 +70,10 @@ impl Player {
             SBPacket::StartGame => {
                 server.set_game_state(GameState::InGame);
             }
+            SBPacket::PlayAgain => {
+                server.set_game_state(GameState::Lobby);
+                server.reset_map();
+            }
         }
     }
 
