@@ -17,6 +17,7 @@ pub struct Config {
     pub tile_visibility_radius: usize,
     pub fow_mountains: bool,
     pub fow_swamps: bool,
+    pub disguise_cities_as_mountains: bool,
 }
 
 impl Config {
@@ -45,6 +46,7 @@ impl Config {
             tile_visibility_radius: 1,
             fow_mountains: false,
             fow_swamps: false,
+            disguise_cities_as_mountains: false,
         }
     }
 }

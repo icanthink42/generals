@@ -5,10 +5,11 @@ city_growth_tick = 2     # Ticks between city tile growth
 capital_growth_tick = 2   # Ticks between capital tile growth
 
 # Visibility settings
-city_visibility_radius = 3  # How far you can see around cities
+city_visibility_radius = 1  # How far you can see around cities
 tile_visibility_radius = 1  # How far you can see around regular tiles
-fow_mountains = true
+fow_mountains = false
 fow_swamps = false
+disguise_cities_as_mountains = true
 
 # Terrain generation settings
 [terrain_config]
@@ -16,6 +17,6 @@ mountain_density = 0.12    # 12% mountains
 desert_density = 0.15      # 15% desert
 swamp_density = 0.08       # 8% swamps
 city_density = 0.04        # 4% cities
-clustering_factor = 0.7    # High clustering for natural-looking terrain
-map_width = 5            # Width of the game map
-map_height = 5           # Height of the game map
+clustering_factor = 0.2    # High clustering for natural-looking terrain
+map_width = 30            # Width of the game map
+map_height = 30           # Height of the game map

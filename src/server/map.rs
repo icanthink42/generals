@@ -18,13 +18,19 @@ impl Default for Cell {
 }
 
 impl Cell {
-    pub fn to_view(&self, in_vision: bool, terrain_visible: bool) -> Option<SharedCell> {
+    pub fn to_view(&self, in_vision: bool, terrain_visible: bool, disguise_cities: bool) -> Option<SharedCell> {
         if !in_vision && !terrain_visible {
             return None;
         }
 
+        let terrain = if !in_vision && disguise_cities && (self.terrain == Terrain::City || self.terrain == Terrain::Capital) {
+            Terrain::Mountain
+        } else {
+            self.terrain
+        };
+
         Some(SharedCell {
-            terrain: self.terrain,
+            terrain,
             troops: if in_vision { self.troops } else { 0 },
             owner_id: if in_vision { self.owner_id } else { None },
             fog_of_war: !in_vision && terrain_visible,
@@ -70,7 +76,7 @@ impl Map {
             if !*player_info.alive.read() {
                 // Dead players can see everything
                 for (id, cell) in cells.iter().enumerate() {
-                    if let Some(view) = cell.to_view(true, true) {
+                    if let Some(view) = cell.to_view(true, true, config.disguise_cities_as_mountains) {
                         visible_cells.insert(id, view);
                     }
                 }
@@ -114,10 +120,11 @@ impl Map {
             let terrain_visible = match cell.terrain {
                 Terrain::Mountain => !config.fow_mountains,
                 Terrain::Swamp => !config.fow_swamps,
+                Terrain::City | Terrain::Capital if config.disguise_cities_as_mountains => true,
                 _ => false
             };
 
-            if let Some(view) = cell.to_view(in_vision, terrain_visible) {
+            if let Some(view) = cell.to_view(in_vision, terrain_visible, config.disguise_cities_as_mountains) {
                 visible_cells.insert(id, view);
             }
         }
