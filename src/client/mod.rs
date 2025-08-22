@@ -3,6 +3,7 @@ mod movement;
 mod rendering;
 mod websocket;
 mod button;
+mod text_input;
 mod ui;
 
 #[cfg(target_arch = "wasm32")]
@@ -29,7 +30,7 @@ pub fn start() -> Result<(), JsValue> {
 
     // Initialize game and websocket
     let websocket = Rc::new(Mutex::new(WebSocketClient::new().expect("Failed to create websocket")));
-    let game = Rc::new(Game::new(websocket.clone()).expect("Failed to create game"));
+    let game = Game::new(websocket.clone()).expect("Failed to create game");
 
 
 
@@ -68,14 +69,21 @@ pub fn start() -> Result<(), JsValue> {
 
     // Set up keyboard handler
     let keyboard_game = game.clone();
-    let keyboard_handler = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+        let keyboard_handler = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
         let key = event.key().to_lowercase();
-        match key.as_str() {
-            "w" | "a" | "s" | "d" => {
-                event.prevent_default();
-                keyboard_game.handle_wasd(key.as_str());
+        // Check if any text input is focused
+        let has_focused_input = keyboard_game.text_inputs.lock().iter().any(|input| input.focused);
+
+        if has_focused_input {
+            keyboard_game.handle_key(key.as_str());
+        } else {
+            match key.as_str() {
+                "w" | "a" | "s" | "d" => {
+                    event.prevent_default();
+                    keyboard_game.handle_wasd(key.as_str());
+                }
+                _ => {}
             }
-            _ => {}
         }
     }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
 

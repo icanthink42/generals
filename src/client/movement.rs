@@ -96,7 +96,7 @@ impl Game {
         self.selected_cell.lock().replace(new_cell);
 
         // Only extend the selected path with WASD
-        let mut paths = self.paths.lock();
+        let paths = self.paths.lock();
         if let Some(path_id) = *self.selected_path.lock() {
             if let Some(path) = paths.get(&path_id) {
                 path.lock().tile_ids.push(new_cell as u32);

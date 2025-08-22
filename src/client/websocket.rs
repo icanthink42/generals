@@ -46,26 +46,6 @@ impl WebSocketClient {
     }
 
     pub fn update(&mut self, game: &Rc<Game>) -> Result<(), JsValue> {
-        // Send login once connected
-        if !self.login_sent && self.client.borrow().status() == ConnectionStatus::Connected {
-            info!("Connected! Sending login packet...");
-            let mut rng = rand::thread_rng();
-            let color = Color {
-                r: rng.gen_range(50..=255),  // Avoid too dark colors
-                g: rng.gen_range(50..=255),
-                b: rng.gen_range(50..=255),
-                a: 255,
-            };
-            let login_bytes = bincode::serialize(&SBPacket::Login(Login {
-                username: "guest".to_string(),
-                color_bid: Some(color),
-            }))
-            .map_err(|e| JsValue::from_str(&format!("Failed to serialize login: {:?}", e)))?;
-
-            self.client.borrow_mut().send_binary(login_bytes)
-                .map_err(|e| JsValue::from_str(&format!("Failed to send login: {:?}", e)))?;
-            self.login_sent = true;
-        }
 
         // Handle any new messages
         let messages = self.client.borrow_mut().receive();
@@ -97,6 +77,7 @@ impl WebSocketClient {
                     self.client.borrow_mut().send_binary(bytes)
                         .map_err(|e| JsValue::from_str(&format!("Failed to send GiveMeMap: {:?}", e))).ok();
                 }
+                *game.connected.lock() = true;
             }
             CBPacket::MapSync(map_sync) => {
                 info!("Processing map sync packet");

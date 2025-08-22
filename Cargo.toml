@@ -54,6 +54,7 @@ features = [
     "DomRect",
     "CssStyleDeclaration",
     "Window",
+    "TextMetrics",
 ]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

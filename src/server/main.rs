@@ -90,7 +90,7 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                     }
 
                     // Send current game state to the new player
-                    let game_state = (*server.game_state.read()).clone();
+                    let game_state = (*server.game_state.read());
                     let state_packet = CBPacket::SetGameState(game_state);
                     if let Ok(resp) = bincode::serialize(&state_packet) {
                         player.send_bytes(resp);
@@ -99,7 +99,7 @@ async fn handle_socket(socket: WebSocket, server: Arc<Server>) {
                 Ok(other) => {
                     player.handle_packet(other, &server).await;
                 }
-                Err(err) => eprintln!("bad packet: {}", err),
+                Err(err) => eprintln!("bad packet: {err}"),
             }
         }
     }
@@ -221,7 +221,7 @@ async fn main() {
             let current_tick_ms = tick_config.read().tick_ms;
 
             if (current_tick_ms - last_tick_ms).abs() > 0.001 {  // Use small epsilon for float comparison
-                println!("Updating tick rate from {}ms to {}ms", last_tick_ms, current_tick_ms);
+                println!("Updating tick rate from {last_tick_ms}ms to {current_tick_ms}ms");
                 interval = tokio::time::interval(tokio::time::Duration::from_millis(current_tick_ms as u64));
                 last_tick_ms = current_tick_ms;
             }

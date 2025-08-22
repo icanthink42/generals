@@ -5,7 +5,6 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use crate::generator::TerrainConfig;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher, Config as NotifyConfig};
-use toml;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -55,7 +54,7 @@ pub type SharedConfig = Arc<RwLock<Config>>;
 pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedConfig {
     let config = if let Some(path) = path.clone() {
         Config::load(&path).unwrap_or_else(|e| {
-            eprintln!("Failed to load config: {}, using default", e);
+            eprintln!("Failed to load config: {e}, using default");
             Config::default()
         })
     } else {
@@ -66,7 +65,7 @@ pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedCon
     // Set up hot reloading if path is provided
     if let Some(path) = path {
         let path = path.as_ref().canonicalize().unwrap_or_else(|e| {
-            eprintln!("Failed to canonicalize path: {}, using as-is", e);
+            eprintln!("Failed to canonicalize path: {e}, using as-is");
             path.as_ref().to_path_buf()
         });
         let config_clone = shared_config.clone();
@@ -103,12 +102,12 @@ pub fn create_shared_config(path: Option<impl AsRef<Path> + Clone>) -> SharedCon
                                     *config_clone.write() = new_config;
                                 }
                                 Err(e) => {
-                                    eprintln!("Failed to reload config: {}", e);
+                                    eprintln!("Failed to reload config: {e}");
                                 }
                             }
                         }
                     }
-                    Err(e) => eprintln!("Watch error: {}", e),
+                    Err(e) => eprintln!("Watch error: {e}"),
                 }
             }
         });

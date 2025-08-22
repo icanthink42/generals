@@ -83,15 +83,40 @@ impl Game {
         context.set_fill_style_str("#1a1a1a");
         context.fill_rect(0.0, 0.0, width, height);
 
-        // Draw waiting text
+        // Draw appropriate text based on connection state
         context.set_font("24px Arial");
         context.set_fill_style_str("white");
         context.set_text_align("center");
         context.set_text_baseline("middle");
-        let _ = context.fill_text("Waiting for game to begin...", logical_width / 2.0, logical_height / 2.0 - 40.0);
 
-        // Render UI elements
-        self.ui.lock().render(context);
+        if !*self.connected.lock() {
+            let _ = context.fill_text("Enter your name to join", logical_width / 2.0, logical_height / 2.0 - 80.0);
+
+            // When not connected, show name input and join button
+            let text_inputs = self.text_inputs.lock();
+            for input in text_inputs.iter() {
+                input.render(context);
+            }
+        } else {
+            let _ = context.fill_text("Waiting for game to begin...", logical_width / 2.0, logical_height / 2.0 - 40.0);
+
+            // When connected, show player list
+            self.render_player_list(&context, 20.0, 20.0);
+        }
+
+        // Render the appropriate button based on connection state
+        let buttons = self.buttons.lock();
+        if !*self.connected.lock() {
+            // Show Join button (first button) when not connected
+            if let Some(button) = buttons.get(0) {
+                button.render(context);
+            }
+        } else {
+            // Show Start button (second button) when connected
+            if let Some(button) = buttons.get(1) {
+                button.render(context);
+            }
+        }
     }
 
     pub fn render_grid(&self) {

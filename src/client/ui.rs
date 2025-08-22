@@ -1,83 +1,87 @@
 #[cfg(target_arch = "wasm32")]
 use {
-    std::rc::Rc,
-    std::sync::Arc,
-    parking_lot::Mutex,
-    web_sys::CanvasRenderingContext2d,
     crate::{
         client::{
-            button::Button,
-            websocket::WebSocketClient,
+            button::Button, game::Game, text_input::TextInput, websocket::WebSocketClient
         },
-        shared::SBPacket,
-    },
+        shared::{
+            sb_packet::Login, Color, SBPacket
+        },
+    }, parking_lot::Mutex, rand::Rng, std::rc::Rc
 };
 
 #[cfg(target_arch = "wasm32")]
-pub struct UI {
-    pub buttons: Vec<Button>,
+pub fn get_buttons(game: Rc<Game>, logical_width: f64, logical_height: f64) -> Vec<Button> {
+    let button_width = 200.0;
+    let button_height = 50.0;
+
+    vec![
+        // Join button (shown before connecting)
+        Button::new(
+            "Join Game".to_string(),
+            (logical_width - button_width) / 2.0,  // center horizontally
+            logical_height / 2.0 + 20.0,    // below vertical center
+            button_width,
+            button_height,
+            {
+                let game = game.clone();
+                Rc::new(move || {
+                    // Generate a random color (avoiding too dark colors)
+                    let mut rng = rand::thread_rng();
+                    let color = Color {
+                        r: rng.gen_range(50..=255),
+                        g: rng.gen_range(50..=255),
+                        b: rng.gen_range(50..=255),
+                        a: 255,
+                    };
+
+                    // Send login packet with name and color
+                    if let Ok(bytes) = bincode::serialize(&SBPacket::Login(Login {
+                        username: game.player_name.lock().clone(),
+                        color_bid: Some(color),
+                    })) {
+                        game.websocket.lock().send_binary(bytes);
+                    }
+                })
+            },
+        ),
+        // Start Game button (shown after connecting)
+        Button::new(
+            "Start Game".to_string(),
+            (logical_width - button_width) / 2.0,  // center horizontally
+            logical_height / 2.0 + 20.0,    // below vertical center
+            button_width,
+            button_height,
+            {
+                let game = game.clone();
+                Rc::new(move || {
+                    if let Ok(bytes) = bincode::serialize(&SBPacket::StartGame) {
+                        game.websocket.lock().send_binary(bytes);
+                    }
+                })
+            },
+        ),
+    ]
 }
 
 #[cfg(target_arch = "wasm32")]
-impl UI {
-    pub fn new(websocket: Rc<Mutex<WebSocketClient>>) -> Self {
-        let window = web_sys::window().unwrap();
-        let dpr = window.device_pixel_ratio();
-        let width = window.inner_width().unwrap().as_f64().unwrap() * dpr;
-        let height = window.inner_height().unwrap().as_f64().unwrap() * dpr;
-        let logical_width = width / dpr;
-        let logical_height = height / dpr;
+pub fn get_text_inputs(game: Rc<Game>, logical_width: f64, logical_height: f64) -> Vec<TextInput> {
+    let button_width = 200.0;  // Use same width as buttons for consistency
 
-        // Define button dimensions
-        let button_width = 200.0;
-        let button_height = 50.0;
-
-        Self {
-            buttons: vec![
-                Button::new(
-                    "Start Game".to_string(),
-                    (logical_width - button_width) / 2.0,  // center horizontally
-                    logical_height / 2.0 + 20.0,    // below vertical center
-                    button_width,
-                    button_height,
-                    Rc::new(move || {
-                        if let Ok(bytes) = bincode::serialize(&SBPacket::StartGame) {
-                            websocket.lock().send_binary(bytes);
-                        }
-                    }),
-                ),
-                // Add more buttons here as needed
-            ],
-        }
-    }
-
-    pub fn handle_click(&self, x: f64, y: f64) -> bool {
-        for button in &self.buttons {
-            if button.enabled && button.contains(x, y) {
-                (button.callback)();
-                return true;
-            }
-        }
-        false
-    }
-
-    pub fn render(&self, context: &CanvasRenderingContext2d) {
-        for button in &self.buttons {
-            button.render(context);
-        }
-    }
-
-    pub fn resize(&mut self, width: f64, height: f64) {
-        let window = web_sys::window().unwrap();
-        let dpr = window.device_pixel_ratio();
-        let logical_width = width / dpr;
-        let logical_height = height / dpr;
-
-        // Update button positions
-        if let Some(start_button) = self.buttons.get_mut(0) {
-            start_button.x = (logical_width - start_button.width) / 2.0;
-            start_button.y = logical_height / 2.0 + 20.0;
-        }
-        // Add more button position updates as needed
-    }
+    vec![
+        TextInput::new(
+            "Enter your name...".to_string(),
+            (logical_width - button_width) / 2.0,  // center horizontally
+            logical_height / 2.0 - 40.0,    // above start button
+            button_width,
+            40.0,                          // slightly shorter than buttons
+            {
+                let game = game.clone();
+                Rc::new(move |text| {
+                    // Store the name
+                    *game.player_name.lock() = text.to_string();
+                })
+            },
+        ),
+    ]
 }
