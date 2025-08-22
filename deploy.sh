@@ -80,11 +80,18 @@ chmod +x "${DEPLOY_TMP}/start_client.sh"
 # Copy necessary files
 cp target/x86_64-unknown-linux-gnu/release/server "${DEPLOY_TMP}/"
 cp -r www/* "${DEPLOY_TMP}/www/"
-cp config.toml "${DEPLOY_TMP}/"
 
 echo "==> Deploying to ${TARGET_SERVER}..."
 # Ensure remote directory exists
 ssh "${TARGET_SERVER}" "mkdir -p ${REMOTE_DIR}"
+
+# Check if config.toml exists on server
+if ! ssh "${TARGET_SERVER}" "test -f ${REMOTE_DIR}/config.toml"; then
+    echo "==> No config.toml found on server, copying local version..."
+    cp config.toml "${DEPLOY_TMP}/"
+else
+    echo "==> Existing config.toml found on server, preserving it..."
+fi
 
 # Copy files to server
 scp -r "${DEPLOY_TMP}"/* "${TARGET_SERVER}:${REMOTE_DIR}"
