@@ -94,16 +94,30 @@ impl Map {
                     _ => config.tile_visibility_radius,
                 };
 
+                // Always check adjacent cells for cities/capitals when radius is 0
+                let check_radius = if radius == 0 { 1 } else { radius };
+
                 // Calculate visible cell IDs within radius
-                let min_x = center_x.saturating_sub(radius);
-                let max_x = (center_x + radius + 1).min(self.width);
-                let min_y = center_y.saturating_sub(radius);
-                let max_y = (center_y + radius + 1).min(self.height);
+                let min_x = center_x.saturating_sub(check_radius);
+                let max_x = (center_x + check_radius + 1).min(self.width);
+                let min_y = center_y.saturating_sub(check_radius);
+                let max_y = (center_y + check_radius + 1).min(self.height);
 
                 for y in min_y..max_y {
                     for x in min_x..max_x {
-                        if (x as i32 - center_x as i32).abs() + (y as i32 - center_y as i32).abs() <= radius as i32 {
-                            visible_ids.push(self.get_cell_id(x, y));
+                        let distance = (x as i32 - center_x as i32).abs() + (y as i32 - center_y as i32).abs();
+                        let cell_id = self.get_cell_id(x, y);
+
+                        // Add cell if within normal vision radius
+                        if distance <= radius as i32 {
+                            visible_ids.push(cell_id);
+                        }
+                        // Or if it's adjacent and is a city/capital
+                        else if distance <= 1 {
+                            let adjacent_cell = &cells[cell_id];
+                            if matches!(adjacent_cell.terrain, Terrain::City | Terrain::Capital) {
+                                visible_ids.push(cell_id);
+                            }
                         }
                     }
                 }
